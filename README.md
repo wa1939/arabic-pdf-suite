@@ -1,61 +1,95 @@
-# Arabic OCR + Word Cloud
+# Arabic PDF Suite
 
-One lightweight app that combines your two ideas into a single clean product:
+A single lightweight app that merges your existing projects into one Arabic-first document tool.
 
-- **Arabic PDF OCR** → searchable PDF + extracted TXT
-- **Arabic text analysis** → Arabic-safe word cloud from OCR output, pasted text, TXT, or Excel
+## Included in one app
+- **Arabic OCR**: searchable PDF + extracted TXT
+- **PDF tools**: merge, split, delete pages, rotate, reorder
+- **Arabic word cloud**: from OCR text, pasted text, TXT, or Excel
+- **Templates**: ready-made text starters for surveys, feedback, and workshops
 
-Built to stay **minimal, fast, and easy to deploy**.
+Think of it as a lightweight **Arabic PDF suite**.
 
 ---
 
-## What it does
+## Product goals
+- one repo
+- one app
+- no signup
+- no saved user data
+- easy for non-technical users
+- one-click local run
+- one-click hosted deployment
 
-### 1) OCR
-Upload an Arabic PDF and get:
+---
+
+## Tech choice
+This is intentionally built as a **single Streamlit app** because it is:
+- fast to ship
+- easy to maintain
+- easy to package
+- easy to self-host
+- good enough for a public utility tool
+
+For OCR, the app uses system tools:
+- **Tesseract OCR**
+- **Ghostscript**
+
+That means:
+- **great for Docker/self-host/VPS/Railway/Render/Fly**
+- **not a good fit for Vercel OCR**
+
+Vercel can host the frontend of a fancier future version, but not this full OCR stack cleanly.
+
+---
+
+## Features
+
+### 1) OCR Arabic PDF
+Upload a PDF and get:
 - searchable PDF
 - extracted UTF-8 text
-- text sent directly into the analysis tab
+- text ready for the Word Cloud tab
 
-### 2) Word Cloud
-Generate a word cloud from:
-- pasted Arabic text
-- TXT upload
-- Excel upload (`.xlsx` / `.xls`)
-- the latest OCR result
+### 2) PDF Tools
+- merge PDFs
+- split PDF by page ranges
+- delete selected pages
+- rotate selected pages
+- reorder pages
 
-Arabic shaping and bidi rendering are handled for proper display.
+### 3) Word Cloud
+Generate Arabic word clouds from:
+- pasted text
+- TXT files
+- Excel files
+- OCR output from uploaded PDF
 
----
-
-## Why this architecture
-
-This app uses **Streamlit** because it is the fastest path to a clean, minimal UX without dragging in a heavy frontend stack.
-
-### Good fit for:
-- local desktop-ish use
-- internal web app
-- Docker deployment
-- simple self-hosting
-
-### Not ideal for:
-- **Vercel OCR runtime**
-
-Why? OCR needs **system binaries**:
-- Tesseract OCR
-- Ghostscript
-
-Vercel is fine for lightweight Python UI experiments, but **not a reliable place for full OCR pipelines**. If you want public deployment with OCR working properly, use:
-- Docker
-- VPS
-- Railway
-- Render
-- Fly.io
-- your own server
+### 4) Templates
+Use simple text templates for:
+- workshop feedback
+- employee comments
+- student feedback
+- customer feedback
 
 ---
 
-## Local run
+## Local run in one click
+
+### Windows
+Double-click:
+- `run.bat`
+
+### macOS / Linux
+Run:
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+---
+
+## Manual local setup
 
 ### 1) Install system dependencies
 
@@ -77,11 +111,9 @@ Install:
 - Arabic language pack (`ara`)
 - Ghostscript
 
----
-
-### 2) Install Python dependencies
+### 2) Python dependencies
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -91,66 +123,95 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Open the local URL Streamlit gives you.
-
 ---
 
 ## Docker
 
-Build:
+### One command
 ```bash
-docker build -t arabic-ocr-wordcloud .
-```
-
-Run:
-```bash
-docker run --rm -p 8501:8501 arabic-ocr-wordcloud
+docker compose up --build
 ```
 
 Then open:
 - <http://localhost:8501>
 
+You can also use plain Docker:
+```bash
+docker build -t arabic-pdf-suite .
+docker run --rm -p 8501:8501 arabic-pdf-suite
+```
+
 ---
 
-## Project structure
+## One-click deployment
+This repo is designed to be deployable to platforms that support Docker.
 
+Best options:
+- Railway
+- Render
+- Fly.io
+- VPS with Docker
+
+If you want, the next step is adding:
+- `railway.json`
+- `render.yaml`
+- deployment badges/buttons in README
+
+---
+
+## Privacy
+Recommended product promise:
+- no signup
+- no permanent file storage
+- files processed temporarily and deleted
+
+For true maximum privacy, run locally or self-host.
+
+---
+
+## Repo structure
 ```text
 .
 ├── app.py
 ├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
+├── run.bat
+├── run.sh
 ├── .gitignore
-├── assets/
 └── src/
     ├── ocr_service.py
+    ├── pdf_tools.py
     └── text_utils.py
 ```
 
 ---
 
-## UX decisions
+## Roadmap
 
-- one page
-- two tabs only
-- minimal choices
-- OCR output flows directly into analysis
-- clean downloads, no clutter
+### Phase 1
+- merge your two repos into one app ✅
+- add PDF tools ✅
+- add one-click local launch ✅
+- add Docker deploy ✅
+
+### Phase 2
+- better Arabic UI polish
+- drag-and-drop page reordering
+- PDF compression improvements
+- more templates
+- better mobile layout
+
+### Phase 3
+- desktop installer build
+- hosted public deployment
+- ads placement
+- analytics
+- optional premium limits later
 
 ---
 
-## Notes
+## Suggested final repo name
+- `arabic-pdf-suite`
 
-- If OCR says dependencies are missing, the UI still works for text/Excel/word-cloud generation.
-- Private/public hosting is your choice, but **full OCR belongs on Docker/self-host**, not Vercel.
-- If you later want a prettier production version, the next upgrade path is **Next.js frontend + Python OCR worker**, but that’s extra complexity you probably don’t need yet.
-
----
-
-## Suggested repo name
-
-A clean merged repo name:
-- `arabic-ocr-suite`
-- `arabic-insight-studio`
-- `arabic-ocr-wordcloud`
-
-My vote: **`arabic-ocr-wordcloud`**. Clear, boring, effective.
+That’s the cleanest name. Short, clear, useful.

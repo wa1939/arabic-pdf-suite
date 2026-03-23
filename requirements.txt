@@ -1,6 +1,7 @@
 streamlit>=1.44.0
 ocrmypdf>=16.10.0
 pikepdf>=9.5.0
+pypdf>=5.4.0
 pandas>=2.2.0
 openpyxl>=3.1.5
 wordcloud>=1.9.4
