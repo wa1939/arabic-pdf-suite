@@ -1,0 +1,10 @@
+streamlit>=1.44.0
+ocrmypdf>=16.10.0
+pikepdf>=9.5.0
+pandas>=2.2.0
+openpyxl>=3.1.5
+wordcloud>=1.9.4
+arabic-reshaper>=3.0.0
+python-bidi>=0.6.6
+Pillow>=10.4.0
+matplotlib>=3.9.0
