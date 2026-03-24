@@ -2,17 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "app.py",
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "backend/main.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "backend/main.py"
+    },
+    {
       "src": "/(.*)",
-      "dest": "app.py"
+      "dest": "frontend/$1"
     }
-  ],
-  "env": {
-    "STREAMLIT_SERVER_PORT": "3000"
-  }
+  ]
 }

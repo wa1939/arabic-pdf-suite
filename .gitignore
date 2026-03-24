@@ -1,10 +1,53 @@
-.venv/
-venv/
+# Python
 __pycache__/
-.pytest_cache/
-*.pyc
-.streamlit/secrets.toml
-build/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
 dist/
-*.spec
+build/
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+frontend/.next/
+frontend/node_modules/
