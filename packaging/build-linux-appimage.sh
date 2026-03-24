@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-echo 'Build the portable folder with PyInstaller first, then package it with appimagetool.'
-pyinstaller --noconfirm --name ArabicPDFSuite --add-data 'assets:assets' app.py
+
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT_DIR"
+
+python3 -m PyInstaller --noconfirm packaging/pyinstaller.spec
+
+mkdir -p release
+ARCHIVE="release/ArabicPDFSuite-linux-${RUNNER_ARCH:-$(uname -m)}.tar.gz"
+tar -C dist -czf "$ARCHIVE" ArabicPDFSuite
+
+echo "Created $ARCHIVE"

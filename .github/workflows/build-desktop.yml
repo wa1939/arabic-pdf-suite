@@ -1,0 +1,90 @@
+name: Build Desktop Apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app.py'
+      - 'src/**'
+      - 'assets/**'
+      - 'requirements.txt'
+      - 'packaging/**'
+      - '.github/workflows/build-desktop.yml'
+
+jobs:
+  test:
+    name: Test backend utilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest
+        run: pytest -q
+
+  build:
+    name: Build ${{ matrix.label }} desktop artifact
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+            artifact_name: ArabicPDFSuite-linux
+            archive_path: release/ArabicPDFSuite-linux-*.tar.gz
+            build_cmd: bash packaging/build-linux-appimage.sh
+          - os: macos-latest
+            label: macos
+            artifact_name: ArabicPDFSuite-macos
+            archive_path: release/ArabicPDFSuite-macos.zip
+            build_cmd: bash packaging/build-macos-app.sh
+          - os: windows-latest
+            label: windows
+            artifact_name: ArabicPDFSuite-windows
+            archive_path: release/ArabicPDFSuite-windows.zip
+            build_cmd: python -m PyInstaller --noconfirm packaging/pyinstaller.spec
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build application
+        shell: bash
+        run: ${{ matrix.build_cmd }}
+
+      - name: Archive Windows portable build
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Compress-Archive -Path dist/ArabicPDFSuite/* -DestinationPath release/ArabicPDFSuite-windows.zip -Force
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.archive_path }}
+          if-no-files-found: error

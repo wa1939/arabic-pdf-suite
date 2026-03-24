@@ -13,7 +13,26 @@ Use for the lightweight UI only. Full OCR on Vercel is not recommended because G
 docker compose up --build
 ```
 
-## Desktop packages
-- Windows: `pyinstaller packaging/pyinstaller.spec`
-- macOS: `bash packaging/build-macos-app.sh`
-- Linux: `bash packaging/build-linux-appimage.sh` or `snapcraft`
+## One-command local run
+```bash
+bash install.sh
+```
+
+## Desktop artifacts
+We now use one shared PyInstaller recipe across Windows, macOS, and Linux.
+That is deliberate: one boring build that works beats three flaky “installer” paths.
+
+Build from the repo root:
+
+- Windows / generic: `pyinstaller --noconfirm packaging/pyinstaller.spec`
+- macOS archive: `bash packaging/build-macos-app.sh`
+- Linux archive: `bash packaging/build-linux-appimage.sh`
+
+GitHub Actions uploads portable desktop artifacts in `release/`:
+- Windows: `ArabicPDFSuite-windows.zip`
+- macOS: `ArabicPDFSuite-macos.zip`
+- Linux: `ArabicPDFSuite-linux-<arch>.tar.gz`
+
+Notes:
+- These are **portable desktop builds**, not signed installers.
+- Real notarized macOS apps and MSI/DMG installers need platform-specific signing and runner validation.

@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-python3 -m pip install pyinstaller -r requirements.txt
-pyinstaller --noconfirm --windowed --name ArabicPDFSuite --add-data 'assets:assets' app.py
+
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT_DIR"
+
+python3 -m PyInstaller --noconfirm packaging/pyinstaller.spec
+
+mkdir -p release
+APP_PATH="dist/ArabicPDFSuite"
+ARCHIVE="release/ArabicPDFSuite-macos.zip"
+
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ARCHIVE"
+
+echo "Created $ARCHIVE"

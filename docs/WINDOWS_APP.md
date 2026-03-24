@@ -1,34 +1,34 @@
-# Windows Installer Guide - Arabic PDF Suite
+# Windows Desktop Build Guide - Arabic PDF Suite
 
 ## Quick Start
 
-1. **Install PyInstaller:**
+1. Install PyInstaller:
    ```bash
-   pip install pyinstaller
+   pip install -r requirements.txt pyinstaller
    ```
 
-2. **Build the .exe:**
+2. Build the portable app from the repo root:
    ```bash
-   cd /root/.openclaw/workspace/arabic-pdf-suite
-   pyinstaller packaging/windows_installer.spec
+   pyinstaller --noconfirm packaging/pyinstaller.spec
    ```
 
-3. **Find your app:**
-   The executable will be in `dist/windows/` folder as `Arabic-Pdf-Suite.exe`
+3. Find your app:
+   - Main launcher: `dist/ArabicPDFSuite/ArabicPDFSuite.exe`
+   - CI archive: `release/ArabicPDFSuite-windows.zip`
 
-4. **Test it app:**
-   Double-click the .exe file to launch the app.
+4. Test it:
+   - Open `ArabicPDFSuite.exe`
+   - Keep the rest of the generated `dist/ArabicPDFSuite/` folder beside it
 
-## Features
-- Standalone Windows application
-- No browser required
-- All 15 PDF tools included
-- Arabic OCR support
-- 50MB file size limit
+## What this build is
+- Portable Windows desktop artifact
+- No installer wizard
+- Better for CI because it is much less fragile than maintaining a separate MSI/EXE packaging path
 
 ## Distribution
-Share the .exe file with users. They can host it on your website or Send via email
+Zip the full `dist/ArabicPDFSuite/` folder or use the GitHub Actions artifact.
 
----
-
-**Need help?** Open an issue on GitHub: https://github.com/wa1939/arabic-pdf-suite/issues
+## Important limits
+- This does **not** bundle Tesseract / Ghostscript / LibreOffice.
+- OCR and some conversions still depend on those tools being installed on the target machine.
+- If you want a polished signed installer later, do it after CI is green and stable.

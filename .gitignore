@@ -51,3 +51,4 @@ htmlcov/
 # Build artifacts
 frontend/.next/
 frontend/node_modules/
+release/

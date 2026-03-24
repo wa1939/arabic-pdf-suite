@@ -126,17 +126,31 @@ Open http://localhost:3000
 
 ---
 
+## 🧠 OCR Vision & Roadmap
+
+The long-term play is bigger than PDF utilities.
+
+Arabic PDF Suite is becoming **Arabic document intelligence**:
+- better Arabic OCR
+- searchable PDFs
+- low-quality scan recovery
+- forms / invoices / ID extraction
+- handwriting OCR roadmap
+
+Read the roadmap here:
+- [docs/OCR_ROADMAP.md](docs/OCR_ROADMAP.md)
+
 ## 🤖 Desktop Build Automation
 
-GitHub Actions now builds desktop artifacts automatically for:
-- Windows `.exe`
-- macOS app bundle
-- Linux portable build
+GitHub Actions now builds portable desktop artifacts automatically for:
+- Windows portable folder zipped as `ArabicPDFSuite-windows.zip`
+- macOS portable archive as `ArabicPDFSuite-macos.zip`
+- Linux portable archive as `ArabicPDFSuite-linux-<arch>.tar.gz`
 
 Run it from the repo Actions tab:
 - **Actions → Build Desktop Apps → Run workflow**
 
-Artifacts are uploaded automatically after each build.
+The workflow runs tests first, then builds each OS artifact with one shared PyInstaller spec. That is less glamorous than “native installers,” but it is a hell of a lot more reliable.
 
 ## 📝 License
 
