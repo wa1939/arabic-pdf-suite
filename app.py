@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from io import BytesIO
 
 import pandas as pd
@@ -183,7 +184,7 @@ with cloud_tab:
     
     # Customization options
     st.markdown("#### Customize")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         available_fonts = get_available_fonts()
@@ -192,17 +193,37 @@ with cloud_tab:
         
         color_schemes = list(COLOR_SCHEMES.keys())
         selected_scheme = st.selectbox("Color scheme", color_schemes, index=color_schemes.index("ELM Brand"))
-    
-    with col2:
+        
         transparent = st.checkbox("Transparent background", value=True)
         bg_color = st.color_picker("Background color", "#FFFFFF", disabled=transparent)
-        max_words = st.slider("Max words", min_value=50, max_value=500, value=200, step=10)
     
-    with col3:
+    with col2:
+        max_words = st.slider("Max words", min_value=50, max_value=500, value=200, step=10)
         width = st.slider("Width", min_value=400, max_value=2000, value=800, step=50)
         height = st.slider("Height", min_value=400, max_value=2000, value=800, step=50)
-        prefer_horizontal = st.slider("Horizontal %", min_value=0.0, max_value=1.0, value=0.9, step=0.1,
-                                      help="Higher = more horizontal words")
+    
+    # Filler/Stopword management
+    with st.expander("🔤 Filler words (stopwords)", expanded=False):
+        st.caption("Words to exclude from the word cloud. Separate with commas or spaces.")
+        extra_fillers = st.text_area(
+            "Add more fillers",
+            placeholder="مثال: كلمة، كلمة أخرى",
+            help="Add words you want to exclude"
+        )
+        exclude_fillers = st.text_area(
+            "Remove from default fillers",
+            placeholder="مثال: كلمة",
+            help="Remove words from the default filler list (if you want them to appear)"
+        )
+        
+        # Parse input
+        extra_stopwords = [w.strip() for w in re.split(r'[,\s]+', extra_fillers) if w.strip()]
+        exclude_stopwords = [w.strip() for w in re.split(r'[,\s]+', exclude_fillers) if w.strip()]
+        
+        if extra_stopwords:
+            st.caption(f"Adding {len(extra_stopwords)} filler(s): {', '.join(extra_stopwords[:5])}{'...' if len(extra_stopwords) > 5 else ''}")
+        if exclude_stopwords:
+            st.caption(f"Excluding {len(exclude_stopwords)} filler(s): {', '.join(exclude_stopwords[:5])}{'...' if len(exclude_stopwords) > 5 else ''}")
     
     if st.button("Generate word cloud", type="primary", disabled=not bool(clean_text.strip())):
         with st.spinner("Generating word cloud..."):
@@ -212,10 +233,12 @@ with cloud_tab:
                 color_scheme=selected_scheme,
                 background_color=None if transparent else bg_color,
                 max_words=max_words,
-                prefer_horizontal=prefer_horizontal,
+                prefer_horizontal=0.9,
                 width=width,
                 height=height,
                 transparent=transparent,
+                extra_stopwords=extra_stopwords if extra_stopwords else None,
+                exclude_stopwords=exclude_stopwords if exclude_stopwords else None,
             )
         top = top_terms(clean_text, limit=15)
         st.image(image, caption="Arabic word cloud", use_container_width=True)

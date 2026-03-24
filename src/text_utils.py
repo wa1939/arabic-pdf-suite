@@ -16,18 +16,30 @@ from wordcloud import WordCloud
 # Get the project root directory (where assets/ folder is)
 _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-DEFAULT_STOPWORDS = {
-    "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين", "الذي",
-    "عدم", "ذلك", "التأكيد", "القطاع", "جدا", "لكن", "ما", "الى", "إلى", "بالنسبة",
-    "شي", "ولكن", "العمل", "المكان", "مكان", "لا", "يوجد", "المكتب", "يؤدي", "عن",
-    "أن", "إن", "كان", "كانت", "هذا", "هذه", "هناك", "تم", "كما", "كل", "قد", "أي",
-}
+# Default Arabic stopwords (from original ArabicWordCloudGenerator)
+DEFAULT_STOPWORDS = [
+    "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين",
+    "الذي", "عدم", "ذلك", "التأكيد", "القطاع", "جدا", "المكاتب", "لكن", "ما",
+    "الى", "بالنسبة", "شي", "ولكن", "العمل", "المكان", "مكان", "لا", "يوجد",
+    "المكتب", "يؤدي", "و ", "عن", "أن", "إن", "كان", "كانت", "هذا", "هذه",
+    "هناك", "تم", "كما", "كل", "قد", "أي", "إلى", "هو", "هي", "هم", "هن",
+    "نحن", "أنا", "أنت", "أنتم", "أنتما", "أنتن", "التي", "الذين", "اللتي",
+    "اللتان", "اللواتي", "اللائي", "الذى", "الذين", "الذيان", "الذين",
+]
 
 ARABIC_RE = re.compile(r"[\u0600-\u06FF]+")
 
 
+def remove_stopwords(text: str, stopwords: Iterable[str]) -> str:
+    """Remove stopwords from text (original approach)."""
+    result = text
+    for word in stopwords:
+        result = result.replace(f' {word} ', ' ')
+    return result
+
+
 def reshape_arabic(text: str) -> str:
-    """Reshape Arabic text for proper RTL display in word clouds."""
+    """Reshape Arabic text for proper RTL display (original approach)."""
     text = (text or "").strip()
     if not text:
         return ""
@@ -60,6 +72,7 @@ def extract_text_from_excel(file_bytes: bytes, preferred_column: str | None = No
 
 
 def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[str]:
+    """Extract Arabic words for term counting (not for wordcloud generation)."""
     stop = set(stopwords or DEFAULT_STOPWORDS)
     words = ARABIC_RE.findall(normalize_text(text))
     return [w for w in words if len(w) > 1 and w not in stop]
@@ -119,7 +132,7 @@ def pick_font(font_name: str | None = None) -> str | None:
 
 
 def make_color_func(colors: list[str]):
-    """Create a color function for wordcloud using the original approach."""
+    """Create a color function for wordcloud (original approach)."""
     def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
         return random.choice(colors)
     return color_func
@@ -135,20 +148,32 @@ def make_wordcloud(
     max_words: int = 200,
     prefer_horizontal: float = 0.9,
     transparent: bool = True,
+    extra_stopwords: list[str] | None = None,
+    exclude_stopwords: list[str] | None = None,
 ) -> Image.Image:
     """
     Generate a word cloud with customizable options.
     
-    Uses the original ArabicWordCloudGenerator approach:
-    - Reshapes Arabic text properly with arabic_reshaper + bidi
-    - Supports transparent background (mode='RGBA')
-    - Custom color functions
+    Uses the ORIGINAL ArabicWordCloudGenerator approach:
+    1. Remove stopwords from raw text (not tokenize)
+    2. Reshape the whole text with arabic_reshaper + bidi
+    3. Pass reshaped text to WordCloud
     """
-    tokens = tokenize_arabic(text)
-    source = " ".join(tokens) if tokens else normalize_text(text)
+    # Normalize text
+    source = normalize_text(text)
     
-    # Reshape Arabic text for proper display (original approach)
-    shaped = reshape_arabic(source) if source else reshape_arabic("لا توجد بيانات كافية")
+    # Build stopwords list
+    stopwords = list(DEFAULT_STOPWORDS)
+    if extra_stopwords:
+        stopwords.extend(extra_stopwords)
+    if exclude_stopwords:
+        stopwords = [w for w in stopwords if w not in exclude_stopwords]
+    
+    # Remove stopwords from text (ORIGINAL APPROACH - don't tokenize)
+    source = remove_stopwords(source, stopwords)
+    
+    # Reshape Arabic text for proper display (ORIGINAL APPROACH)
+    shaped = reshape_arabic(source) if source.strip() else reshape_arabic("لا توجد بيانات كافية")
     
     # Get colors for the scheme
     colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["ELM Brand"])
