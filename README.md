@@ -126,6 +126,18 @@ Open http://localhost:3000
 
 ---
 
+## 🤖 Desktop Build Automation
+
+GitHub Actions now builds desktop artifacts automatically for:
+- Windows `.exe`
+- macOS app bundle
+- Linux portable build
+
+Run it from the repo Actions tab:
+- **Actions → Build Desktop Apps → Run workflow**
+
+Artifacts are uploaded automatically after each build.
+
 ## 📝 License
 
 MIT - Use it, fork it, sell it, whatever. Just keep the "Built by" credit.
