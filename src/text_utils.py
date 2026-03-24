@@ -64,31 +64,89 @@ def top_terms(text: str, limit: int = 20) -> list[tuple[str, int]]:
     return counts.most_common(limit)
 
 
-def pick_font() -> str | None:
-    candidates = [
-        Path("assets/NotoNaskhArabic-Regular.ttf"),
-        Path("DIN Next LT Arabic Regular.ttf"),
-        Path("arial.ttf"),
-        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate)
+# Available Arabic fonts
+ARABIC_FONTS = {
+    "Noto Naskh Arabic": "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
+    "Noto Sans Arabic": "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+    "Amiri": "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf",
+    "DejaVu Sans": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+}
+
+# Color schemes (as hex colors)
+COLOR_SCHEMES = {
+    "Blue Ocean": ["#0077B6", "#00B4D8", "#90E0EF", "#CAF0F8", "#03045E"],
+    "Sunset": ["#FF6B6B", "#FEC89A", "#FFD93D", "#6BCB77", "#4D96FF"],
+    "Forest": ["#2D6A4F", "#40916C", "#52B788", "#74C69D", "#95D5B2"],
+    "Purple Dream": ["#7B2CBF", "#9D4EDD", "#C77DFF", "#E0AAFF", "#5A189A"],
+    "Warm Earth": ["#BC6C25", "#DDA15E", "#FEFAE0", "#606C38", "#283618"],
+    "Monochrome": ["#212529", "#495057", "#6C757D", "#ADB5BD", "#DEE2E6"],
+    "Saudi Green": ["#006C35", "#FFFFFF", "#006C35", "#004D25", "#008C45"],
+    "Candy": ["#FF69B4", "#FF1493", "#DB7093", "#FFB6C1", "#FFC0CB"],
+    "Ocean Blue": ["#4493F8"],  # Original single color
+}
+
+
+def get_available_fonts() -> dict[str, str]:
+    """Return available fonts that exist on the system."""
+    available = {}
+    for name, path in ARABIC_FONTS.items():
+        if Path(path).exists():
+            available[name] = path
+    # Always return at least one font
+    if not available:
+        available["Default"] = None
+    return available
+
+
+def pick_font(font_name: str | None = None) -> str | None:
+    """Pick a font, preferring the specified one or falling back to defaults."""
+    if font_name and font_name in ARABIC_FONTS:
+        path = Path(ARABIC_FONTS[font_name])
+        if path.exists():
+            return str(path)
+    
+    # Fallback order
+    for name, path in ARABIC_FONTS.items():
+        if Path(path).exists():
+            return path
     return None
 
 
-def make_wordcloud(text: str, width: int = 1400, height: int = 800) -> Image.Image:
+def make_wordcloud(
+    text: str,
+    width: int = 1400,
+    height: int = 800,
+    font_name: str | None = None,
+    color_scheme: str = "Ocean Blue",
+    background_color: str = "white",
+    max_words: int = 200,
+    prefer_horizontal: float = 0.9,
+) -> Image.Image:
+    """Generate a word cloud with customizable options."""
     tokens = tokenize_arabic(text)
     source = " ".join(tokens) if tokens else normalize_text(text)
-    shaped = reshape_arabic(source)
+    shaped = reshape_arabic(source) or reshape_arabic("لا توجد بيانات كافية")
+    
+    # Get colors for the scheme
+    colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["Ocean Blue"])
+    
+    # Create color function
+    import random
+    def color_func(*args, **kwargs):
+        return random.choice(colors)
+    
+    font_path = pick_font(font_name)
+    
     wc = WordCloud(
-        font_path=pick_font(),
+        font_path=font_path,
         width=width,
         height=height,
-        background_color="white",
+        background_color=background_color,
         collocations=False,
-        prefer_horizontal=0.9,
+        prefer_horizontal=prefer_horizontal,
         regexp=r"[^\s]+",
-        color_func=lambda *args, **kwargs: "#4493F8",
-    ).generate(shaped or "لا توجد بيانات كافية")
+        color_func=color_func,
+        max_words=max_words,
+    ).generate(shaped)
+    
     return wc.to_image()

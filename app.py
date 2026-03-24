@@ -16,8 +16,10 @@ from src.pdf_tools import (
     split_pdf,
 )
 from src.text_utils import (
+    COLOR_SCHEMES,
     extract_text_from_excel,
     extract_text_from_txt,
+    get_available_fonts,
     make_wordcloud,
     normalize_text,
     top_terms,
@@ -178,8 +180,35 @@ with cloud_tab:
         st.text_area("Last OCR text", text_value, height=220)
 
     clean_text = normalize_text(text_value)
+    
+    # Customization options
+    st.markdown("#### Customize Word Cloud")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        available_fonts = get_available_fonts()
+        font_names = list(available_fonts.keys())
+        selected_font = st.selectbox("Font", font_names, index=0 if font_names else 0)
+        
+        color_schemes = list(COLOR_SCHEMES.keys())
+        selected_scheme = st.selectbox("Color scheme", color_schemes, index=color_schemes.index("Blue Ocean"))
+    
+    with col2:
+        bg_color = st.color_picker("Background color", "#FFFFFF")
+        max_words = st.slider("Max words", min_value=50, max_value=500, value=200, step=10)
+        prefer_horizontal = st.slider("Horizontal preference", min_value=0.0, max_value=1.0, value=0.9, step=0.1,
+                                      help="Higher = more horizontal words, Lower = more vertical words")
+    
     if st.button("Generate word cloud", type="primary", disabled=not bool(clean_text.strip())):
-        image = make_wordcloud(clean_text)
+        with st.spinner("Generating word cloud..."):
+            image = make_wordcloud(
+                clean_text,
+                font_name=selected_font,
+                color_scheme=selected_scheme,
+                background_color=bg_color,
+                max_words=max_words,
+                prefer_horizontal=prefer_horizontal,
+            )
         top = top_terms(clean_text, limit=15)
         st.image(image, caption="Arabic word cloud", use_container_width=True)
         img_buffer = BytesIO()
