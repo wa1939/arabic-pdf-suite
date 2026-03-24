@@ -1,4 +1,5 @@
 .venv/
+venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -7,4 +8,6 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 output/
+debug_output/
+*.png
 *.log

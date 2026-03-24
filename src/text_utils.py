@@ -13,25 +13,22 @@ from bidi.algorithm import get_display
 from PIL import Image
 from wordcloud import WordCloud
 
-# Get the project root directory (where assets/ folder is)
 _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-# Exact stopwords from original ArabicWordCloudGenerator/app.py
 ORIGINAL_STOPWORDS = [
     "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين", "الذي", "عدم", "ذلك",
     "و ", "التأكيد", "القطاع", "جدا", "المكاتب", "لكن", "ما", "الى", "بالنسبة", "شي", "ولكن",
     "العمل", "المكان", "مكان", "لا", "يوجد", "المكتب", "يؤدي",
 ]
 
-# Extended defaults
 DEFAULT_STOPWORDS = list(ORIGINAL_STOPWORDS) + [
     "عن", "أن", "إن", "كان", "كانت", "هذا", "هذه", "هناك", "تم", "كما", "كل", "قد", "أي", "إلى",
     "هو", "هي", "هم", "هن", "نحن", "أنا", "أنت", "أنتم", "أنتما", "أنتن", "التي", "الذين",
 ]
 
 ARABIC_RE = re.compile(r"[\u0600-\u06FF]+")
+PRESENTATION_FORMS_RE = re.compile(r"[\uFB50-\uFDFF\uFE70-\uFEFC]+")
 
-# Available Arabic fonts (using absolute paths)
 ARABIC_FONTS = {
     "DIN Next Arabic": str(_PROJECT_ROOT / "assets" / "DIN Next LT Arabic Regular.ttf"),
     "Arial": str(_PROJECT_ROOT / "assets" / "arial.ttf"),
@@ -40,7 +37,6 @@ ARABIC_FONTS = {
     "Amiri": "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf",
 }
 
-# Color schemes
 COLOR_SCHEMES = {
     "ELM Brand": ["#808285", "#2A6EBB", "#952D98", "#44C8F5", "#722EA5", "#1E1656"],
     "Blue Ocean": ["#0077B6", "#00B4D8", "#90E0EF", "#CAF0F8", "#03045E"],
@@ -55,7 +51,6 @@ COLOR_SCHEMES = {
 
 
 def normalize_text(text: str) -> str:
-    """Normalize text for processing."""
     text = str(text or "").replace("\ufeff", " ")
     text = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
     text = re.sub(r"\s+", " ", text)
@@ -63,7 +58,6 @@ def normalize_text(text: str) -> str:
 
 
 def remove_stopwords(text: str, stopwords: Iterable[str]) -> str:
-    """Remove stopwords from text - EXACT original approach."""
     result = f" {text} "
     for word in stopwords:
         result = result.replace(f" {word} ", " ")
@@ -71,7 +65,6 @@ def remove_stopwords(text: str, stopwords: Iterable[str]) -> str:
 
 
 def reshape_arabic(text: str) -> str:
-    """Reshape Arabic text for proper RTL display - EXACT original approach."""
     if not text or not text.strip():
         return ""
     reshaped = arabic_reshaper.reshape(text)
@@ -95,7 +88,6 @@ def extract_text_from_excel(file_bytes: bytes, preferred_column: str | None = No
 
 
 def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[str]:
-    """Extract Arabic words for term counting."""
     stop = set(stopwords or DEFAULT_STOPWORDS)
     cleaned = remove_stopwords(text, stop)
     words = ARABIC_RE.findall(cleaned)
@@ -103,13 +95,11 @@ def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[s
 
 
 def top_terms(text: str, limit: int = 20, stopwords: Iterable[str] | None = None) -> list[tuple[str, int]]:
-    """Get top terms for display."""
     counts = Counter(tokenize_arabic(text, stopwords=stopwords))
     return counts.most_common(limit)
 
 
 def get_available_fonts() -> dict[str, str]:
-    """Return available fonts that exist on the system."""
     available = {}
     for name, path in ARABIC_FONTS.items():
         if Path(path).exists():
@@ -118,7 +108,6 @@ def get_available_fonts() -> dict[str, str]:
 
 
 def pick_font(font_name: str | None = None) -> str | None:
-    """Pick a font, preferring the specified one."""
     if font_name and font_name in ARABIC_FONTS:
         path = Path(ARABIC_FONTS[font_name])
         if path.exists():
@@ -131,10 +120,34 @@ def pick_font(font_name: str | None = None) -> str | None:
 
 
 def make_color_func(colors: list[str]):
-    """Create a color function - EXACT original approach."""
     def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
         return random.choice(colors)
     return color_func
+
+
+def reshape_words_for_wordcloud(text: str, stopwords: Iterable[str]) -> Counter[str]:
+    """Most robust Arabic path: tokenize raw Arabic first, then reshape each whole word."""
+    counts = Counter(tokenize_arabic(text, stopwords=stopwords))
+    shaped = Counter()
+    for word, count in counts.items():
+        rendered = reshape_arabic(word)
+        if rendered and PRESENTATION_FORMS_RE.search(rendered):
+            shaped[rendered] += count
+    return shaped
+
+
+def build_wordcloud_debug_report(text: str, stopwords: Iterable[str] | None = None) -> dict:
+    stop = list(stopwords or DEFAULT_STOPWORDS)
+    cleaned = remove_stopwords(text, stop)
+    whole_text = reshape_arabic(cleaned)
+    shaped_words = reshape_words_for_wordcloud(text, stop)
+    return {
+        "cleaned": cleaned,
+        "whole_text_bidi": whole_text,
+        "whole_text_contains_presentation_forms": bool(PRESENTATION_FORMS_RE.search(whole_text)),
+        "word_count": len(shaped_words),
+        "sample_words": list(shaped_words.keys())[:10],
+    }
 
 
 def make_wordcloud(
@@ -150,62 +163,48 @@ def make_wordcloud(
     extra_stopwords: list[str] | None = None,
     exclude_stopwords: list[str] | None = None,
 ) -> Image.Image:
-    """
-    Generate a word cloud using the EXACT original ArabicWordCloudGenerator approach.
-    
-    This matches the original app.py:
-    1. Remove stopwords from raw text
-    2. Reshape the ENTIRE text with arabic_reshaper
-    3. Apply bidi.get_display
-    4. Pass to WordCloud.generate()
-    """
-    # Build stopwords list
     stopwords = list(DEFAULT_STOPWORDS)
     if extra_stopwords:
         stopwords.extend(extra_stopwords)
     if exclude_stopwords:
         exclude_set = set(exclude_stopwords)
         stopwords = [w for w in stopwords if w not in exclude_set]
-    
-    # Remove stopwords from text (original approach)
-    cleaned = remove_stopwords(text, stopwords)
-    
-    # Reshape the ENTIRE text (original approach - not word by word)
-    reshaped_text = arabic_reshaper.reshape(cleaned)
-    bidi_text = get_display(reshaped_text)
-    
-    # Get colors
+
     colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["ELM Brand"])
     color_func = make_color_func(colors)
-    
-    # Get font
     font_path = pick_font(font_name)
     if not font_path:
         raise RuntimeError("No Arabic-capable font found")
-    
-    # Generate word cloud - EXACT original parameters
-    if transparent or background_color is None:
-        wc = WordCloud(
-            font_path=font_path,
-            width=width,
-            height=height,
-            background_color=None,
-            mode='RGBA',
-            color_func=color_func,
-            max_words=max_words,
-            prefer_horizontal=prefer_horizontal,
-            collocations=False,
-        ).generate(bidi_text)
+
+    word_frequencies = reshape_words_for_wordcloud(text, stopwords)
+    if not word_frequencies:
+        cleaned = remove_stopwords(text, stopwords)
+        bidi_text = reshape_arabic(cleaned)
+        if not bidi_text:
+            raise ValueError("No Arabic text remained after filtering.")
+        generator_input = ("text", bidi_text)
     else:
-        wc = WordCloud(
-            font_path=font_path,
-            width=width,
-            height=height,
-            background_color=background_color,
-            color_func=color_func,
-            max_words=max_words,
-            prefer_horizontal=prefer_horizontal,
-            collocations=False,
-        ).generate(bidi_text)
-    
+        generator_input = ("frequencies", word_frequencies)
+
+    params = dict(
+        font_path=font_path,
+        width=width,
+        height=height,
+        color_func=color_func,
+        max_words=max_words,
+        prefer_horizontal=prefer_horizontal,
+        collocations=False,
+        regexp=r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]+",
+    )
+    if transparent or background_color is None:
+        params["background_color"] = None
+        params["mode"] = "RGBA"
+    else:
+        params["background_color"] = background_color
+
+    wc = WordCloud(**params)
+    if generator_input[0] == "frequencies":
+        wc.generate_from_frequencies(generator_input[1])
+    else:
+        wc.generate(generator_input[1])
     return wc.to_image()
