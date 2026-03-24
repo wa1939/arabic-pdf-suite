@@ -13,6 +13,9 @@ from bidi.algorithm import get_display
 from PIL import Image
 from wordcloud import WordCloud
 
+# Get the project root directory (where assets/ folder is)
+_PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
 DEFAULT_STOPWORDS = {
     "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين", "الذي",
     "عدم", "ذلك", "التأكيد", "القطاع", "جدا", "لكن", "ما", "الى", "إلى", "بالنسبة",
@@ -67,10 +70,10 @@ def top_terms(text: str, limit: int = 20) -> list[tuple[str, int]]:
     return counts.most_common(limit)
 
 
-# Available Arabic fonts
+# Available Arabic fonts (using absolute paths)
 ARABIC_FONTS = {
-    "DIN Next Arabic": "assets/DIN Next LT Arabic Regular.ttf",
-    "Arial": "assets/arial.ttf",
+    "DIN Next Arabic": str(_PROJECT_ROOT / "assets" / "DIN Next LT Arabic Regular.ttf"),
+    "Arial": str(_PROJECT_ROOT / "assets" / "arial.ttf"),
     "Noto Naskh Arabic": "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
     "Noto Sans Arabic": "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
     "Amiri": "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf",
