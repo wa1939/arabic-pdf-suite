@@ -158,7 +158,7 @@ with pdf_tab:
 
 with cloud_tab:
     st.subheader("Arabic Word Cloud")
-    st.caption("Create a word cloud from text, Excel, TXT, or the last OCR result.")
+    st.caption("Create a word cloud from text, Excel, TXT, or the last OCR result. Uses original Arabic rendering.")
     source = st.radio("Input source", ["Paste text", "Upload TXT", "Upload Excel", "Use last OCR result"], horizontal=True)
 
     text_value = ""
@@ -182,8 +182,8 @@ with cloud_tab:
     clean_text = normalize_text(text_value)
     
     # Customization options
-    st.markdown("#### Customize Word Cloud")
-    col1, col2 = st.columns(2)
+    st.markdown("#### Customize")
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         available_fonts = get_available_fonts()
@@ -191,13 +191,18 @@ with cloud_tab:
         selected_font = st.selectbox("Font", font_names, index=0 if font_names else 0)
         
         color_schemes = list(COLOR_SCHEMES.keys())
-        selected_scheme = st.selectbox("Color scheme", color_schemes, index=color_schemes.index("Blue Ocean"))
+        selected_scheme = st.selectbox("Color scheme", color_schemes, index=color_schemes.index("ELM Brand"))
     
     with col2:
-        bg_color = st.color_picker("Background color", "#FFFFFF")
+        transparent = st.checkbox("Transparent background", value=True)
+        bg_color = st.color_picker("Background color", "#FFFFFF", disabled=transparent)
         max_words = st.slider("Max words", min_value=50, max_value=500, value=200, step=10)
-        prefer_horizontal = st.slider("Horizontal preference", min_value=0.0, max_value=1.0, value=0.9, step=0.1,
-                                      help="Higher = more horizontal words, Lower = more vertical words")
+    
+    with col3:
+        width = st.slider("Width", min_value=400, max_value=2000, value=800, step=50)
+        height = st.slider("Height", min_value=400, max_value=2000, value=800, step=50)
+        prefer_horizontal = st.slider("Horizontal %", min_value=0.0, max_value=1.0, value=0.9, step=0.1,
+                                      help="Higher = more horizontal words")
     
     if st.button("Generate word cloud", type="primary", disabled=not bool(clean_text.strip())):
         with st.spinner("Generating word cloud..."):
@@ -205,9 +210,12 @@ with cloud_tab:
                 clean_text,
                 font_name=selected_font,
                 color_scheme=selected_scheme,
-                background_color=bg_color,
+                background_color=None if transparent else bg_color,
                 max_words=max_words,
                 prefer_horizontal=prefer_horizontal,
+                width=width,
+                height=height,
+                transparent=transparent,
             )
         top = top_terms(clean_text, limit=15)
         st.image(image, caption="Arabic word cloud", use_container_width=True)

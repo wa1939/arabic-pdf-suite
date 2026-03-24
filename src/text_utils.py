@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import re
 from collections import Counter
 from io import BytesIO
@@ -23,10 +24,12 @@ ARABIC_RE = re.compile(r"[\u0600-\u06FF]+")
 
 
 def reshape_arabic(text: str) -> str:
+    """Reshape Arabic text for proper RTL display in word clouds."""
     text = (text or "").strip()
     if not text:
         return ""
-    return get_display(arabic_reshaper.reshape(text))
+    reshaped = arabic_reshaper.reshape(text)
+    return get_display(reshaped)
 
 
 def normalize_text(text: str) -> str:
@@ -66,23 +69,24 @@ def top_terms(text: str, limit: int = 20) -> list[tuple[str, int]]:
 
 # Available Arabic fonts
 ARABIC_FONTS = {
+    "DIN Next Arabic": "assets/DIN Next LT Arabic Regular.ttf",
+    "Arial": "assets/arial.ttf",
     "Noto Naskh Arabic": "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
     "Noto Sans Arabic": "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
     "Amiri": "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf",
-    "DejaVu Sans": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 }
 
 # Color schemes (as hex colors)
 COLOR_SCHEMES = {
+    "ELM Brand": ["#808285", "#2A6EBB", "#952D98", "#44C8F5", "#722EA5", "#1E1656"],
     "Blue Ocean": ["#0077B6", "#00B4D8", "#90E0EF", "#CAF0F8", "#03045E"],
     "Sunset": ["#FF6B6B", "#FEC89A", "#FFD93D", "#6BCB77", "#4D96FF"],
     "Forest": ["#2D6A4F", "#40916C", "#52B788", "#74C69D", "#95D5B2"],
     "Purple Dream": ["#7B2CBF", "#9D4EDD", "#C77DFF", "#E0AAFF", "#5A189A"],
     "Warm Earth": ["#BC6C25", "#DDA15E", "#FEFAE0", "#606C38", "#283618"],
     "Monochrome": ["#212529", "#495057", "#6C757D", "#ADB5BD", "#DEE2E6"],
-    "Saudi Green": ["#006C35", "#FFFFFF", "#006C35", "#004D25", "#008C45"],
+    "Saudi Green": ["#006C35", "#008C45", "#004D25", "#00A84A", "#005A2B"],
     "Candy": ["#FF69B4", "#FF1493", "#DB7093", "#FFB6C1", "#FFC0CB"],
-    "Ocean Blue": ["#4493F8"],  # Original single color
 }
 
 
@@ -92,9 +96,6 @@ def get_available_fonts() -> dict[str, str]:
     for name, path in ARABIC_FONTS.items():
         if Path(path).exists():
             available[name] = path
-    # Always return at least one font
-    if not available:
-        available["Default"] = None
     return available
 
 
@@ -105,48 +106,76 @@ def pick_font(font_name: str | None = None) -> str | None:
         if path.exists():
             return str(path)
     
-    # Fallback order
-    for name, path in ARABIC_FONTS.items():
-        if Path(path).exists():
-            return path
+    # Fallback order (DIN first as it's the original)
+    for name in ["DIN Next Arabic", "Arial", "Noto Naskh Arabic", "Noto Sans Arabic", "Amiri"]:
+        if name in ARABIC_FONTS:
+            path = Path(ARABIC_FONTS[name])
+            if path.exists():
+                return str(path)
     return None
+
+
+def make_color_func(colors: list[str]):
+    """Create a color function for wordcloud using the original approach."""
+    def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+        return random.choice(colors)
+    return color_func
 
 
 def make_wordcloud(
     text: str,
-    width: int = 1400,
+    width: int = 800,
     height: int = 800,
     font_name: str | None = None,
-    color_scheme: str = "Ocean Blue",
-    background_color: str = "white",
+    color_scheme: str = "ELM Brand",
+    background_color: str | None = None,
     max_words: int = 200,
     prefer_horizontal: float = 0.9,
+    transparent: bool = True,
 ) -> Image.Image:
-    """Generate a word cloud with customizable options."""
+    """
+    Generate a word cloud with customizable options.
+    
+    Uses the original ArabicWordCloudGenerator approach:
+    - Reshapes Arabic text properly with arabic_reshaper + bidi
+    - Supports transparent background (mode='RGBA')
+    - Custom color functions
+    """
     tokens = tokenize_arabic(text)
     source = " ".join(tokens) if tokens else normalize_text(text)
-    shaped = reshape_arabic(source) or reshape_arabic("لا توجد بيانات كافية")
+    
+    # Reshape Arabic text for proper display (original approach)
+    shaped = reshape_arabic(source) if source else reshape_arabic("لا توجد بيانات كافية")
     
     # Get colors for the scheme
-    colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["Ocean Blue"])
-    
-    # Create color function
-    import random
-    def color_func(*args, **kwargs):
-        return random.choice(colors)
+    colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["ELM Brand"])
+    color_func = make_color_func(colors)
     
     font_path = pick_font(font_name)
     
-    wc = WordCloud(
-        font_path=font_path,
-        width=width,
-        height=height,
-        background_color=background_color,
-        collocations=False,
-        prefer_horizontal=prefer_horizontal,
-        regexp=r"[^\s]+",
-        color_func=color_func,
-        max_words=max_words,
-    ).generate(shaped)
+    # Use original approach: transparent background with RGBA mode
+    if transparent or background_color is None:
+        wc = WordCloud(
+            font_path=font_path,
+            width=width,
+            height=height,
+            background_color=None,
+            mode='RGBA',
+            collocations=False,
+            prefer_horizontal=prefer_horizontal,
+            color_func=color_func,
+            max_words=max_words,
+        ).generate(shaped)
+    else:
+        wc = WordCloud(
+            font_path=font_path,
+            width=width,
+            height=height,
+            background_color=background_color,
+            collocations=False,
+            prefer_horizontal=prefer_horizontal,
+            color_func=color_func,
+            max_words=max_words,
+        ).generate(shaped)
     
     return wc.to_image()
