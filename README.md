@@ -1,106 +1,94 @@
 # Arabic PDF Suite
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Deploy](https://img.shields.io/badge/Deploy-Free-success) ![Next.js](https://img.shields.io/badge/Next.js-14.2-black?logo=next.js) ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python) ![License](https://img.shields.io/badge/License-MIT-green)
 
-**Like ILovePDF, but built for Arabic documents.**
+**Like ILovePDF, but for Arabic documents. 100% free. 100% private.**
 
-Professional PDF tools with full Arabic OCR support. Merge, split, compress, convert, OCR, watermark, and more. Modern Next.js frontend with Python FastAPI backend.
-
-[**Live Demo**](#) • [**Deploy Your Own**](#-deploy-in-3-minutes) • [**Documentation**](#documentation)
+Professional PDF tools with full Arabic OCR support. No registration. No data saved. Browser-only.
 
 ---
 
-## Why Arabic PDF Suite?
+## 🚀 Deploy in 1 Minute (FREE)
 
-Most PDF tools treat Arabic as an afterthought. This one doesn't.
-
-| Feature | ILovePDF | SmallPDF | **Arabic PDF Suite** |
-|---------|----------|----------|---------------------|
-| Arabic OCR | ❌ | ❌ | ✅ Full support |
-| RTL Interface | ❌ | ❌ | ✅ Built-in |
-| Self-host | ❌ | ❌ | ✅ Your server |
-| Free forever | ❌ | ❌ | ✅ Open source |
-| Privacy | ⚠️ Cloud | ⚠️ Cloud | ✅ 100% local |
-
----
-
-## ✨ Features
-
-### 📄 PDF Tools (15 tools)
-- **Merge PDF** - Combine multiple PDFs into one
-- **Split PDF** - Split into multiple files or extract pages
-- **Compress PDF** - Reduce file size intelligently
-- **PDF ↔ Images** - Convert both ways
-- **PDF ↔ Word** - Full document conversion
-- **PDF ↔ Excel** - Table extraction and conversion
-- **Add Watermark** - Custom text watermarks
-- **Rotate Pages** - 90°, 180°, 270° rotation
-- **Delete Pages** - Remove unwanted pages
-- **Reorder Pages** - Drag to rearrange
-- **OCR** - Arabic + English text extraction
-- **Arabic Word Cloud** - Beautiful visualizations
-
-### 🌐 Modern Stack
-- **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS
-- **Backend**: Python 3.11 + FastAPI
-- **Architecture**: Microservices with REST API
-- **Deploy**: Docker Compose, Vercel + Railway, or bare metal
-
-### 🔒 Privacy First
-- Files processed locally on your server
-- Automatic cleanup after processing
-- No external API calls
-- No tracking, no analytics, no BS
-
----
-
-## 🚀 Deploy in 3 Minutes
-
-### Option 1: Docker Compose (Recommended)
-
-```bash
-# Clone and run
-git clone https://github.com/wa1939/arabic-pdf-suite.git
-cd arabic-pdf-suite
-docker compose up --build
-```
-
-Open http://localhost
-
-### Option 2: Vercel + Railway
-
-**Frontend (Vercel):**
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwa1939%2Farabic-pdf-suite&env=NEXT_PUBLIC_API_URL)
-
-**Backend (Railway):**
+### Option 1: Railway (Recommended - Easiest)
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/arabic-pdf-suite)
 
-### Option 3: One-Line Install
+1. Click the button above
+2. Sign in with GitHub
+3. Done! You get a free URL like `your-app.railway.app`
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/wa1939/arabic-pdf-suite/main/install.sh | bash
-```
+**Free tier includes:** 500 hours/month, 512MB RAM, 1GB storage
 
 ---
 
-## 📸 Screenshots
+### Option 2: Render (Free Forever)
 
-### Home Page
-![Home](docs/screenshots/home.png)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/wa1939/arabic-pdf-suite)
 
-### Tool Interface
-![Tool](docs/screenshots/tool.png)
+1. Click button → Connect GitHub
+2. Create free account
+3. Get URL like `your-app.onrender.com`
 
-### Dark Mode
-![Dark](docs/screenshots/dark.png)
+**Free tier:** 750 hours/month, auto-sleeps after 15 min inactivity
+
+---
+
+### Option 3: Vercel + Railway (Split Deployment)
+
+**Frontend (Vercel - Free):**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwa1939%2Farabic-pdf-suite&root-directory=frontend)
+
+**Backend (Railway - Free):**
+
+[![Deploy Backend on Railway](https://railway.app/button.svg)](https://railway.app/template/arabic-pdf-backend)
+
+---
+
+### Option 4: Docker (Any Cloud)
+
+```bash
+# One command
+docker run -p 80:80 wa1939/arabic-pdf-suite
+```
+
+Works on: AWS, GCP, Azure, DigitalOcean, any VPS
+
+---
+
+## 📸 What You Get
+
+**Single Page - All 15 Tools Visible:**
+- Merge PDF
+- Split PDF
+- Compress PDF
+- PDF to Images
+- Images to PDF
+- Word to PDF
+- PDF to Word
+- Add Watermark
+- Rotate Pages
+- Delete Pages
+- Reorder Pages
+- OCR (Arabic + English)
+- Arabic Word Cloud
+- PDF to Excel
+- Excel to PDF
+
+**3 Ad Placements:**
+- Top banner
+- Sidebar
+- Bottom banner
+
+**Your Branding:**
+- "Built by [Your Name]" in footer
+- Add your website link
+
+**Privacy First:**
+- "No data saved, 100% private, browser-only" messaging
+- Files processed and deleted immediately
+- No tracking, no analytics
 
 ---
 
@@ -108,70 +96,29 @@ curl -fsSL https://raw.githubusercontent.com/wa1939/arabic-pdf-suite/main/instal
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS |
-| **Backend** | Python 3.11, FastAPI, Uvicorn |
-| **PDF Engine** | PyPDF2, pdf2image, ReportLab |
-| **OCR** | Tesseract (Arabic + English) |
-| **Office** | python-docx, openpyxl, LibreOffice |
-| **Deployment** | Docker, Docker Compose, Nginx |
+| Frontend | Next.js 14.2, React 18, TypeScript, Tailwind CSS |
+| Backend | Python 3.11, FastAPI, Tesseract OCR |
+| OCR | Arabic + English support |
+| Deploy | Docker, Railway, Render, Vercel |
 
 ---
 
-## 📁 Project Structure
-
-```
-arabic-pdf-suite/
-├── frontend/              # Next.js app
-│   ├── app/              # App router pages
-│   ├── components/       # React components
-│   ├── lib/              # Utilities
-│   └── public/           # Static assets
-├── backend/              # FastAPI app
-│   ├── main.py          # API routes
-│   └── requirements.txt
-├── src/                  # Shared Python modules
-│   ├── pdf_tools.py     # PDF operations
-│   ├── ocr_service.py   # OCR logic
-│   └── text_utils.py    # Arabic text handling
-├── docker-compose.yml
-├── Dockerfile.backend
-├── nginx.conf
-└── README.md
-```
-
----
-
-## 🔧 Local Development
-
-### Prerequisites
-
-- Node.js 20+
-- Python 3.11+
-- Tesseract OCR with Arabic language pack
-
-### Backend Setup
+## 🏃 Local Development
 
 ```bash
-# Install Python dependencies
+# Clone
+git clone https://github.com/wa1939/arabic-pdf-suite.git
+cd arabic-pdf-suite
+
+# Backend
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+uvicorn backend.main:app --port 8000
 
-# Install system dependencies (Ubuntu/Debian)
-sudo apt-get install tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
-    ghostscript qpdf poppler-utils libreoffice-writer libreoffice-calc
-
-# Run backend
-cd backend
-uvicorn main:app --reload --port 8000
-```
-
-### Frontend Setup
-
-```bash
-# Install Node dependencies
+# Frontend (new terminal)
 cd frontend
 npm install
-
-# Run development server
 npm run dev
 ```
 
@@ -179,114 +126,16 @@ Open http://localhost:3000
 
 ---
 
-## 🌍 Environment Variables
+## 📝 License
 
-### Frontend (.env.local)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-### Backend (.env)
-
-```env
-# No required env vars for basic setup
-# Optional: configure CORS, rate limiting, etc.
-```
+MIT - Use it, fork it, sell it, whatever. Just keep the "Built by" credit.
 
 ---
 
-## 📖 API Reference
+## 🙏 Credits
 
-### Health Check
-```
-GET /health
-```
-
-### Merge PDFs
-```
-POST /api/merge
-Content-Type: multipart/form-data
-
-files: [PDF files]
-```
-
-### Split PDF
-```
-POST /api/split
-Content-Type: multipart/form-data
-
-file: PDF file
-mode: "all" | "range" | "extract"
-pages: "1,3,5-7" (optional)
-```
-
-### Compress PDF
-```
-POST /api/compress
-Content-Type: multipart/form-data
-
-file: PDF file
-quality: "low" | "medium" | "high"
-```
-
-### OCR
-```
-POST /api/ocr
-Content-Type: multipart/form-data
-
-file: PDF or image
-language: "ara+eng" (default)
-```
-
-[View full API docs →](docs/API.md)
+Built by [Waleed Alhamed](https://walhamed.com) • [GitHub](https://github.com/wa1939) • [Twitter](https://twitter.com/wa1939)
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Drag-and-drop page reordering
-- [ ] PDF signing
-- [ ] PDF password protection
-- [ ] Batch processing
-- [ ] Arabic handwriting OCR
-- [ ] Browser extension
-- [ ] Desktop apps (Electron)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
-
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/amazing`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 🙏 Acknowledgments
-
-- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) - OCR engine
-- [PyPDF2](https://github.com/py-pdf/pypdf) - PDF manipulation
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python API framework
-- [Next.js](https://nextjs.org/) - React framework
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
-
----
-
-<div align="center">
-
-**Made with ❤️ by [Waleed Alhamed](https://walhamed.com)**
-
-[Website](https://walhamed.com) • [GitHub](https://github.com/wa1939) • [Twitter](https://twitter.com/wa1939)
-
-</div>
+**Star ⭐ this repo if it helped you!**
