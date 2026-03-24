@@ -12,34 +12,59 @@ Think of it as a lightweight **Arabic PDF suite**.
 
 ---
 
-## Product goals
+## What makes this useful
 - one repo
 - one app
 - no signup
-- no saved user data
+- no permanent file storage
 - easy for non-technical users
 - one-click local run
-- one-click hosted deployment
+- one-click hosted deployment on Docker-friendly platforms
 
 ---
 
-## Tech choice
-This is intentionally built as a **single Streamlit app** because it is:
-- fast to ship
-- easy to maintain
-- easy to package
-- easy to self-host
-- good enough for a public utility tool
+## Quick start
 
-For OCR, the app uses system tools:
-- **Tesseract OCR**
-- **Ghostscript**
+### One click local run
+#### Windows
+Double-click:
+- `run.bat`
 
-That means:
-- **great for Docker/self-host/VPS/Railway/Render/Fly**
-- **not a good fit for Vercel OCR**
+#### macOS / Linux
+```bash
+chmod +x run.sh
+./run.sh
+```
 
-Vercel can host the frontend of a fancier future version, but not this full OCR stack cleanly.
+### One command Docker run
+```bash
+docker compose up --build
+```
+
+Open:
+- <http://localhost:8501>
+
+---
+
+## Hosted deployment
+This repo is prepared for Docker-based hosting.
+
+### Deploy to Railway
+1. Create a new project in Railway
+2. Connect this repo
+3. Railway will detect `railway.json` + `Dockerfile`
+4. Deploy
+
+### Deploy to Render
+1. Create a new Web Service from this repo
+2. Render will detect `render.yaml`
+3. Deploy
+
+### Deploy anywhere with Docker
+```bash
+docker build -t arabic-pdf-suite .
+docker run --rm -p 8501:8501 arabic-pdf-suite
+```
 
 ---
 
@@ -74,18 +99,21 @@ Use simple text templates for:
 
 ---
 
-## Local run in one click
+## Why this stack
+This is intentionally a **single Streamlit app** because it is:
+- fast to ship
+- simple to maintain
+- easy to package
+- easy to self-host
+- good enough for a public utility tool
 
-### Windows
-Double-click:
-- `run.bat`
+For OCR, the app uses system tools:
+- **Tesseract OCR**
+- **Ghostscript**
 
-### macOS / Linux
-Run:
-```bash
-chmod +x run.sh
-./run.sh
-```
+That means:
+- great for Docker/self-host/VPS/Railway/Render/Fly
+- not a clean fit for Vercel OCR
 
 ---
 
@@ -125,47 +153,13 @@ streamlit run app.py
 
 ---
 
-## Docker
-
-### One command
-```bash
-docker compose up --build
-```
-
-Then open:
-- <http://localhost:8501>
-
-You can also use plain Docker:
-```bash
-docker build -t arabic-pdf-suite .
-docker run --rm -p 8501:8501 arabic-pdf-suite
-```
-
----
-
-## One-click deployment
-This repo is designed to be deployable to platforms that support Docker.
-
-Best options:
-- Railway
-- Render
-- Fly.io
-- VPS with Docker
-
-If you want, the next step is adding:
-- `railway.json`
-- `render.yaml`
-- deployment badges/buttons in README
-
----
-
 ## Privacy
 Recommended product promise:
 - no signup
 - no permanent file storage
 - files processed temporarily and deleted
 
-For true maximum privacy, run locally or self-host.
+For maximum privacy, run locally or self-host.
 
 ---
 
@@ -175,6 +169,8 @@ For true maximum privacy, run locally or self-host.
 ├── app.py
 ├── Dockerfile
 ├── docker-compose.yml
+├── railway.json
+├── render.yaml
 ├── requirements.txt
 ├── run.bat
 ├── run.sh
@@ -189,29 +185,25 @@ For true maximum privacy, run locally or self-host.
 
 ## Roadmap
 
-### Phase 1
-- merge your two repos into one app ✅
-- add PDF tools ✅
-- add one-click local launch ✅
-- add Docker deploy ✅
+### Done
+- merge your two repos into one app
+- add PDF tools
+- add one-click local launch
+- add Docker deploy
+- prepare Railway/Render deployment config
 
-### Phase 2
-- better Arabic UI polish
+### Next
+- stronger Arabic UI polish
 - drag-and-drop page reordering
-- PDF compression improvements
+- better PDF compression
 - more templates
-- better mobile layout
-
-### Phase 3
-- desktop installer build
-- hosted public deployment
-- ads placement
-- analytics
-- optional premium limits later
+- release packaging for desktop download
+- hosted public instance
+- ads layout
 
 ---
 
 ## Suggested final repo name
 - `arabic-pdf-suite`
 
-That’s the cleanest name. Short, clear, useful.
+Short, clear, useful.

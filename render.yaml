@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: arabic-pdf-suite
+    env: docker
+    plan: free
+    autoDeploy: true
