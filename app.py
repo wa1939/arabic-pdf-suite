@@ -8,6 +8,7 @@ import streamlit as st
 
 from src.ocr_service import run_ocr, system_ready, vercel_friendly_note
 from src.pdf_tools import (
+    compress_pdf,
     delete_pages,
     merge_pdfs,
     page_count,
@@ -18,6 +19,7 @@ from src.pdf_tools import (
 )
 from src.text_utils import (
     COLOR_SCHEMES,
+    DEFAULT_STOPWORDS,
     extract_text_from_excel,
     extract_text_from_txt,
     get_available_fonts,
@@ -107,7 +109,7 @@ with ocr_tab:
 with pdf_tab:
     st.subheader("PDF Tools")
     st.caption("Clean, combine, or rearrange PDFs without creating an account.")
-    tool = st.selectbox("Choose tool", ["Merge PDFs", "Split PDF", "Delete pages", "Rotate pages", "Reorder pages"])
+    tool = st.selectbox("Choose tool", ["Merge PDFs", "Split PDF", "Delete pages", "Rotate pages", "Reorder pages", "Compress PDF"])
 
     try:
         if tool == "Merge PDFs":
@@ -154,6 +156,23 @@ with pdf_tab:
             if st.button("Reorder PDF", type="primary", disabled=not file or not order.strip()):
                 result = reorder_pdf(file, parse_page_list(order))
                 st.download_button("Download reordered PDF", result.data, result.filename, mime="application/pdf")
+
+        elif tool == "Compress PDF":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="compress_pdf")
+            if file:
+                original_size = len(file.getvalue()) / 1024
+                st.caption(f"Original size: {original_size:.1f} KB")
+            if st.button("Compress PDF", type="primary", disabled=not file):
+                result = compress_pdf(file)
+                compressed_size = len(result.data) / 1024
+                if file:
+                    delta = len(file.getvalue()) - len(result.data)
+                    if delta > 0:
+                        st.success(f"Compression finished. Saved {delta / 1024:.1f} KB.")
+                    else:
+                        st.info("Compression finished. This file was already tightly packed, so size stayed about the same.")
+                st.caption(f"Compressed size: {compressed_size:.1f} KB")
+                st.download_button("Download compressed PDF", result.data, result.filename, mime="application/pdf")
     except Exception as exc:
         st.error(f"PDF tool failed: {exc}")
 
@@ -240,7 +259,15 @@ with cloud_tab:
                 extra_stopwords=extra_stopwords if extra_stopwords else None,
                 exclude_stopwords=exclude_stopwords if exclude_stopwords else None,
             )
-        top = top_terms(clean_text, limit=15)
+        active_stopwords = None
+        if extra_stopwords or exclude_stopwords:
+            active_stopwords = list(DEFAULT_STOPWORDS)
+            if extra_stopwords:
+                active_stopwords.extend(extra_stopwords)
+            if exclude_stopwords:
+                excluded = set(exclude_stopwords)
+                active_stopwords = [w for w in active_stopwords if w not in excluded]
+        top = top_terms(clean_text, limit=15, stopwords=active_stopwords)
         st.image(image, caption="Arabic word cloud", use_container_width=True)
         img_buffer = BytesIO()
         image.save(img_buffer, format="PNG")

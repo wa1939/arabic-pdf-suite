@@ -5,6 +5,7 @@ from io import BytesIO
 from typing import Iterable
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import pikepdf
 from pypdf import PdfReader, PdfWriter
 
 
@@ -19,8 +20,29 @@ def _read(uploaded_file) -> PdfReader:
     return PdfReader(uploaded_file)
 
 
+def _read_bytes(uploaded_file) -> bytes:
+    uploaded_file.seek(0)
+    return uploaded_file.read()
+
+
 def parse_page_list(raw: str) -> list[int]:
-    return [int(x.strip()) for x in raw.split(",") if x.strip()]
+    pages: list[int] = []
+    for chunk in raw.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if "-" in chunk:
+            start_s, end_s = chunk.split("-", 1)
+            start, end = int(start_s), int(end_s)
+            if start <= 0 or end <= 0 or end < start:
+                raise ValueError(f"Invalid page range: {chunk}")
+            pages.extend(range(start, end + 1))
+        else:
+            value = int(chunk)
+            if value <= 0:
+                raise ValueError(f"Invalid page number: {chunk}")
+            pages.append(value)
+    return pages
 
 
 def parse_page_ranges(raw: str) -> list[tuple[int, int]]:
@@ -101,6 +123,35 @@ def reorder_pdf(file, order: list[int]) -> PDFBytesResult:
     buf = BytesIO()
     writer.write(buf)
     return PDFBytesResult(buf.getvalue(), "reordered.pdf")
+
+
+def compress_pdf(file) -> PDFBytesResult:
+    source = _read_bytes(file)
+    input_buffer = BytesIO(source)
+    output_buffer = BytesIO()
+
+    with pikepdf.open(input_buffer) as pdf:
+        for page in pdf.pages:
+            try:
+                page_contents = page.obj.get("/Contents")
+                if page_contents is not None:
+                    page_contents = page_contents.read_bytes()
+            except Exception:
+                pass
+
+        pdf.remove_unreferenced_resources()
+        pdf.save(
+            output_buffer,
+            compress_streams=True,
+            recompress_flate=True,
+            object_stream_mode=pikepdf.ObjectStreamMode.generate,
+            linearize=True,
+        )
+
+    result = output_buffer.getvalue()
+    if len(result) >= len(source):
+        result = source
+    return PDFBytesResult(result, "compressed.pdf")
 
 
 def page_count(file) -> int:

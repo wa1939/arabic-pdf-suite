@@ -16,71 +16,22 @@ from wordcloud import WordCloud
 # Get the project root directory (where assets/ folder is)
 _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-# Default Arabic stopwords (from original ArabicWordCloudGenerator)
-DEFAULT_STOPWORDS = [
-    "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين",
-    "الذي", "عدم", "ذلك", "التأكيد", "القطاع", "جدا", "المكاتب", "لكن", "ما",
-    "الى", "بالنسبة", "شي", "ولكن", "العمل", "المكان", "مكان", "لا", "يوجد",
-    "المكتب", "يؤدي", "و ", "عن", "أن", "إن", "كان", "كانت", "هذا", "هذه",
-    "هناك", "تم", "كما", "كل", "قد", "أي", "إلى", "هو", "هي", "هم", "هن",
-    "نحن", "أنا", "أنت", "أنتم", "أنتما", "أنتن", "التي", "الذين", "اللتي",
-    "اللتان", "اللواتي", "اللائي", "الذى", "الذين", "الذيان", "الذين",
+# Exact base list from the original ArabicWordCloudGenerator/app.py
+ORIGINAL_STOPWORDS = [
+    "و", "في", "على", "من", "او", "أو", "بشكل", "طلب", "مع", "خلال", "بين", "الذي", "عدم", "ذلك",
+    "و ", "التأكيد", "القطاع", "جدا", "المكاتب", "لكن", "ما", "الى", "بالنسبة", "شي", "ولكن",
+    "العمل", "المكان", "مكان", "لا", "يوجد", "المكتب", "يؤدي",
+]
+
+# Extended defaults used by the suite, while keeping the original list intact.
+DEFAULT_STOPWORDS = ORIGINAL_STOPWORDS + [
+    "عن", "أن", "إن", "كان", "كانت", "هذا", "هذه", "هناك", "تم", "كما", "كل", "قد", "أي", "إلى",
+    "هو", "هي", "هم", "هن", "نحن", "أنا", "أنت", "أنتم", "أنتما", "أنتن", "التي", "الذين", "اللتي",
+    "اللتان", "اللواتي", "اللائي", "الذى", "الذيان",
 ]
 
 ARABIC_RE = re.compile(r"[\u0600-\u06FF]+")
-
-
-def remove_stopwords(text: str, stopwords: Iterable[str]) -> str:
-    """Remove stopwords from text (original approach)."""
-    result = text
-    for word in stopwords:
-        result = result.replace(f' {word} ', ' ')
-    return result
-
-
-def reshape_arabic(text: str) -> str:
-    """Reshape Arabic text for proper RTL display (original approach)."""
-    text = (text or "").strip()
-    if not text:
-        return ""
-    reshaped = arabic_reshaper.reshape(text)
-    return get_display(reshaped)
-
-
-def normalize_text(text: str) -> str:
-    text = (text or "").replace("\n", " ")
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
-
-
-def extract_text_from_txt(file_bytes: bytes) -> str:
-    return file_bytes.decode("utf-8", errors="ignore")
-
-
-def extract_text_from_excel(file_bytes: bytes, preferred_column: str | None = None) -> str:
-    df = pd.read_excel(BytesIO(file_bytes))
-    if df.empty:
-        return ""
-
-    if preferred_column and preferred_column in df.columns:
-        series = df[preferred_column]
-    else:
-        object_cols = [c for c in df.columns if df[c].dtype == object]
-        series = df[object_cols[0]] if object_cols else df.iloc[:, 0]
-
-    return normalize_text(" ".join(series.fillna("").astype(str).tolist()))
-
-
-def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[str]:
-    """Extract Arabic words for term counting (not for wordcloud generation)."""
-    stop = set(stopwords or DEFAULT_STOPWORDS)
-    words = ARABIC_RE.findall(normalize_text(text))
-    return [w for w in words if len(w) > 1 and w not in stop]
-
-
-def top_terms(text: str, limit: int = 20) -> list[tuple[str, int]]:
-    counts = Counter(tokenize_arabic(text))
-    return counts.most_common(limit)
+TOKEN_SPLIT_RE = re.compile(r"[^\u0600-\u06FF]+")
 
 
 # Available Arabic fonts (using absolute paths)
@@ -106,8 +57,66 @@ COLOR_SCHEMES = {
 }
 
 
+def normalize_text(text: str) -> str:
+    text = str(text or "").replace("\ufeff", " ")
+    text = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _pad_text(text: str) -> str:
+    text = normalize_text(text)
+    return f" {text} " if text else ""
+
+
+def remove_stopwords(text: str, stopwords: Iterable[str]) -> str:
+    """Match the original app.py approach exactly: raw string replacement on padded text."""
+    result = _pad_text(text)
+    for word in stopwords:
+        result = result.replace(f" {word} ", " ")
+    return normalize_text(result)
+
+
+def reshape_arabic(text: str) -> str:
+    """Reshape Arabic text for proper RTL display using the original arabic_reshaper + bidi flow."""
+    source = normalize_text(text)
+    if not source:
+        return ""
+    reshaped_text = arabic_reshaper.reshape(source)
+    return get_display(reshaped_text)
+
+
+def extract_text_from_txt(file_bytes: bytes) -> str:
+    return normalize_text(file_bytes.decode("utf-8", errors="ignore"))
+
+
+def extract_text_from_excel(file_bytes: bytes, preferred_column: str | None = None) -> str:
+    df = pd.read_excel(BytesIO(file_bytes))
+    if df.empty:
+        return ""
+
+    if preferred_column and preferred_column in df.columns:
+        series = df[preferred_column]
+    else:
+        object_cols = [c for c in df.columns if df[c].dtype == object]
+        series = df[object_cols[0]] if object_cols else df.iloc[:, 0]
+
+    return normalize_text(" ".join(series.fillna("").astype(str).tolist()))
+
+
+def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[str]:
+    stop = {normalize_text(w) for w in (stopwords or DEFAULT_STOPWORDS)}
+    cleaned = remove_stopwords(text, stop)
+    tokens = [tok for tok in TOKEN_SPLIT_RE.split(cleaned) if tok]
+    return [tok for tok in tokens if len(tok) > 1 and ARABIC_RE.fullmatch(tok)]
+
+
+def top_terms(text: str, limit: int = 20, stopwords: Iterable[str] | None = None) -> list[tuple[str, int]]:
+    counts = Counter(tokenize_arabic(text, stopwords=stopwords))
+    return counts.most_common(limit)
+
+
 def get_available_fonts() -> dict[str, str]:
-    """Return available fonts that exist on the system."""
     available = {}
     for name, path in ARABIC_FONTS.items():
         if Path(path).exists():
@@ -116,25 +125,22 @@ def get_available_fonts() -> dict[str, str]:
 
 
 def pick_font(font_name: str | None = None) -> str | None:
-    """Pick a font, preferring the specified one or falling back to defaults."""
     if font_name and font_name in ARABIC_FONTS:
         path = Path(ARABIC_FONTS[font_name])
         if path.exists():
             return str(path)
-    
-    # Fallback order (DIN first as it's the original)
+
     for name in ["DIN Next Arabic", "Arial", "Noto Naskh Arabic", "Noto Sans Arabic", "Amiri"]:
-        if name in ARABIC_FONTS:
-            path = Path(ARABIC_FONTS[name])
-            if path.exists():
-                return str(path)
+        path = Path(ARABIC_FONTS[name])
+        if path.exists():
+            return str(path)
     return None
 
 
 def make_color_func(colors: list[str]):
-    """Create a color function for wordcloud (original approach)."""
     def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
         return random.choice(colors)
+
     return color_func
 
 
@@ -151,59 +157,32 @@ def make_wordcloud(
     extra_stopwords: list[str] | None = None,
     exclude_stopwords: list[str] | None = None,
 ) -> Image.Image:
-    """
-    Generate a word cloud with customizable options.
-    
-    Uses the ORIGINAL ArabicWordCloudGenerator approach:
-    1. Remove stopwords from raw text (not tokenize)
-    2. Reshape the whole text with arabic_reshaper + bidi
-    3. Pass reshaped text to WordCloud
-    """
-    # Normalize text
-    source = normalize_text(text)
-    
-    # Build stopwords list
+    """Generate a word cloud using the original Arabic RTL rendering pipeline."""
     stopwords = list(DEFAULT_STOPWORDS)
     if extra_stopwords:
-        stopwords.extend(extra_stopwords)
+        stopwords.extend(normalize_text(w) for w in extra_stopwords if normalize_text(w))
     if exclude_stopwords:
-        stopwords = [w for w in stopwords if w not in exclude_stopwords]
-    
-    # Remove stopwords from text (ORIGINAL APPROACH - don't tokenize)
-    source = remove_stopwords(source, stopwords)
-    
-    # Reshape Arabic text for proper display (ORIGINAL APPROACH)
-    shaped = reshape_arabic(source) if source.strip() else reshape_arabic("لا توجد بيانات كافية")
-    
-    # Get colors for the scheme
+        excluded = {normalize_text(w) for w in exclude_stopwords if normalize_text(w)}
+        stopwords = [w for w in stopwords if normalize_text(w) not in excluded]
+
+    source = remove_stopwords(text, stopwords)
+    shaped = reshape_arabic(source) if source else reshape_arabic("لا توجد بيانات كافية")
     colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["ELM Brand"])
-    color_func = make_color_func(colors)
-    
     font_path = pick_font(font_name)
-    
-    # Use original approach: transparent background with RGBA mode
+
+    kwargs = dict(
+        font_path=font_path,
+        width=width,
+        height=height,
+        collocations=False,
+        prefer_horizontal=prefer_horizontal,
+        color_func=make_color_func(colors),
+        max_words=max_words,
+    )
+
     if transparent or background_color is None:
-        wc = WordCloud(
-            font_path=font_path,
-            width=width,
-            height=height,
-            background_color=None,
-            mode='RGBA',
-            collocations=False,
-            prefer_horizontal=prefer_horizontal,
-            color_func=color_func,
-            max_words=max_words,
-        ).generate(shaped)
+        kwargs.update(background_color=None, mode="RGBA")
     else:
-        wc = WordCloud(
-            font_path=font_path,
-            width=width,
-            height=height,
-            background_color=background_color,
-            collocations=False,
-            prefer_horizontal=prefer_horizontal,
-            color_func=color_func,
-            max_words=max_words,
-        ).generate(shaped)
-    
-    return wc.to_image()
+        kwargs.update(background_color=background_color)
+
+    return WordCloud(**kwargs).generate(shaped).to_image()

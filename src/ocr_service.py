@@ -55,10 +55,14 @@ def run_ocr(input_pdf: bytes, filename: str, language: str = "ara") -> OCRResult
             sidecar=str(output_txt),
             jobs=max(1, (os.cpu_count() or 2) - 1),
             force_ocr=False,
+            redo_ocr=True,
             skip_text=False,
         )
     except Exception as exc:
         raise RuntimeError(f"OCR failed: {exc}") from exc
+
+    if not output_txt.exists():
+        output_txt.write_text("", encoding="utf-8")
 
     return OCRResult(pdf_path=output_pdf, txt_path=output_txt)
 
