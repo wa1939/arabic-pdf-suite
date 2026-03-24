@@ -38,28 +38,35 @@ def run_ocr(input_pdf: bytes, filename: str, language: str = "ara") -> OCRResult
     output_txt = out_dir / f"{safe_name}_ocr.txt"
     input_path.write_bytes(input_pdf)
 
+    ocr_kwargs = dict(
+        language=language,
+        rotate_pages=True,
+        deskew=True,
+        clean=True,
+        remove_background=True,
+        optimize=1,
+        output_type="pdf",
+        pdf_renderer="hocr",
+        tesseract_oem=1,
+        tesseract_pagesegmode=3,
+        sidecar=str(output_txt),
+        jobs=max(1, (os.cpu_count() or 2) - 1),
+        force_ocr=True,
+        redo_ocr=False,
+        skip_text=False,
+    )
+
     try:
-        ocrmypdf.ocr(
-            str(input_path),
-            str(output_pdf),
-            language=language,
-            rotate_pages=True,
-            deskew=True,
-            clean=True,
-            remove_background=True,
-            optimize=1,
-            output_type="pdf",
-            pdf_renderer="hocr",
-            tesseract_oem=1,
-            tesseract_pagesegmode=3,
-            sidecar=str(output_txt),
-            jobs=max(1, (os.cpu_count() or 2) - 1),
-            force_ocr=False,
-            redo_ocr=True,
-            skip_text=False,
-        )
+        ocrmypdf.ocr(str(input_path), str(output_pdf), **ocr_kwargs)
     except Exception as exc:
-        raise RuntimeError(f"OCR failed: {exc}") from exc
+        if "--remove-background is temporarily not implemented" in str(exc):
+            ocr_kwargs["remove_background"] = False
+            try:
+                ocrmypdf.ocr(str(input_path), str(output_pdf), **ocr_kwargs)
+            except Exception as retry_exc:
+                raise RuntimeError(f"OCR failed after retrying without background removal: {retry_exc}") from retry_exc
+        else:
+            raise RuntimeError(f"OCR failed: {exc}") from exc
 
     if not output_txt.exists():
         output_txt.write_text("", encoding="utf-8")

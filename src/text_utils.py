@@ -111,8 +111,12 @@ def tokenize_arabic(text: str, stopwords: Iterable[str] | None = None) -> list[s
     return [tok for tok in tokens if len(tok) > 1 and ARABIC_RE.fullmatch(tok)]
 
 
+def word_frequencies(text: str, stopwords: Iterable[str] | None = None) -> Counter[str]:
+    return Counter(tokenize_arabic(text, stopwords=stopwords))
+
+
 def top_terms(text: str, limit: int = 20, stopwords: Iterable[str] | None = None) -> list[tuple[str, int]]:
-    counts = Counter(tokenize_arabic(text, stopwords=stopwords))
+    counts = word_frequencies(text, stopwords=stopwords)
     return counts.most_common(limit)
 
 
@@ -166,9 +170,11 @@ def make_wordcloud(
         stopwords = [w for w in stopwords if normalize_text(w) not in excluded]
 
     source = remove_stopwords(text, stopwords)
-    shaped = reshape_arabic(source) if source else reshape_arabic("لا توجد بيانات كافية")
+    frequencies = word_frequencies(source, stopwords=[])
     colors = COLOR_SCHEMES.get(color_scheme, COLOR_SCHEMES["ELM Brand"])
     font_path = pick_font(font_name)
+    if not font_path:
+        raise RuntimeError("No Arabic-capable font was found for word cloud rendering.")
 
     kwargs = dict(
         font_path=font_path,
@@ -178,6 +184,7 @@ def make_wordcloud(
         prefer_horizontal=prefer_horizontal,
         color_func=make_color_func(colors),
         max_words=max_words,
+        random_state=42,
     )
 
     if transparent or background_color is None:
@@ -185,4 +192,9 @@ def make_wordcloud(
     else:
         kwargs.update(background_color=background_color)
 
-    return WordCloud(**kwargs).generate(shaped).to_image()
+    if frequencies:
+        shaped_frequencies = {reshape_arabic(word): count for word, count in frequencies.items()}
+        return WordCloud(**kwargs).generate_from_frequencies(shaped_frequencies).to_image()
+
+    fallback_word = reshape_arabic("لا توجد بيانات كافية")
+    return WordCloud(**kwargs).generate_from_frequencies({fallback_word: 1}).to_image()
