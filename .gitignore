@@ -1,13 +1,10 @@
 .venv/
 venv/
 __pycache__/
+.pytest_cache/
 *.pyc
-*.pyo
-*.pyd
-.DS_Store
-.env
 .streamlit/secrets.toml
-output/
-debug_output/
-*.png
+build/
+dist/
+*.spec
 *.log

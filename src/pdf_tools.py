@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import csv
+import shutil
+import subprocess
+import tempfile
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -7,11 +11,12 @@ from typing import Iterable
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import fitz
+import openpyxl
 import pikepdf
-from PIL import Image, ImageEnhance
+from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.colors import Color
-from reportlab.lib.pagesizes import portrait
+from reportlab.lib.pagesizes import A4, portrait
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
@@ -23,9 +28,15 @@ class PDFBytesResult:
     filename: str
 
 
+@dataclass
+class FileBytesResult:
+    data: bytes
+    filename: str
+    mime_type: str
+
+
 def _read(uploaded_file) -> PdfReader:
-    uploaded_file.seek(0)
-    return PdfReader(uploaded_file)
+    return PdfReader(BytesIO(_read_bytes(uploaded_file)))
 
 
 def _read_bytes(uploaded_file) -> bytes:
@@ -252,3 +263,115 @@ def add_text_watermark(
 
 def page_count(file) -> int:
     return len(_read(file).pages)
+
+
+def _text_to_pdf_bytes(text: str, title: str = "Document") -> bytes:
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    text_obj = c.beginText(40, height - 60)
+    text_obj.setFont("Helvetica", 11)
+    line_height = 16
+    for raw_line in (text or "").splitlines() or [""]:
+        line = raw_line.strip() or " "
+        while len(line) > 95:
+            text_obj.textLine(line[:95])
+            line = line[95:]
+            if text_obj.getY() < 60:
+                c.drawText(text_obj)
+                c.showPage()
+                text_obj = c.beginText(40, height - 60)
+                text_obj.setFont("Helvetica", 11)
+        text_obj.textLine(line)
+        if text_obj.getY() < 60:
+            c.drawText(text_obj)
+            c.showPage()
+            text_obj = c.beginText(40, height - 60)
+            text_obj.setFont("Helvetica", 11)
+    c.drawText(text_obj)
+    c.setTitle(title)
+    c.save()
+    return buffer.getvalue()
+
+
+def word_to_pdf(file) -> PDFBytesResult:
+    suffix = Path(file.name).suffix.lower()
+    source = _read_bytes(file)
+    if suffix == ".docx":
+        try:
+            from docx import Document
+
+            with tempfile.TemporaryDirectory(prefix="word-to-pdf-") as tmp:
+                docx_path = Path(tmp) / "input.docx"
+                docx_path.write_bytes(source)
+                doc = Document(str(docx_path))
+                text = "\n".join(p.text for p in doc.paragraphs)
+                return PDFBytesResult(_text_to_pdf_bytes(text, title=file.name), f"{Path(file.name).stem}.pdf")
+        except Exception as exc:
+            raise RuntimeError(f"Word to PDF failed: {exc}") from exc
+
+    if suffix == ".txt":
+        text = source.decode("utf-8", errors="ignore")
+        return PDFBytesResult(_text_to_pdf_bytes(text, title=file.name), f"{Path(file.name).stem}.pdf")
+
+    raise RuntimeError("Upload a .docx or .txt file for Word to PDF.")
+
+
+def pdf_to_word(file) -> FileBytesResult:
+    source = _read_bytes(file)
+    text_pages: list[str] = []
+    with fitz.open(stream=source, filetype="pdf") as doc:
+        for i, page in enumerate(doc, start=1):
+            text_pages.append(f"Page {i}\n{'=' * 20}\n{page.get_text('text').strip()}\n")
+    text = "\n".join(text_pages).strip()
+    try:
+        from docx import Document
+
+        docx = Document()
+        docx.add_heading(Path(file.name).stem, level=1)
+        for chunk in text_pages:
+            for line in chunk.splitlines():
+                docx.add_paragraph(line)
+        buffer = BytesIO()
+        docx.save(buffer)
+        return FileBytesResult(buffer.getvalue(), f"{Path(file.name).stem}.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    except Exception:
+        return FileBytesResult(text.encode("utf-8"), f"{Path(file.name).stem}.txt", "text/plain")
+
+
+def pdf_to_excel(file) -> FileBytesResult:
+    source = _read_bytes(file)
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "PDF Content"
+    sheet.append(["Page", "Line", "Text"])
+    with fitz.open(stream=source, filetype="pdf") as doc:
+        for page_number, page in enumerate(doc, start=1):
+            lines = [line.strip() for line in page.get_text("text").splitlines() if line.strip()]
+            if not lines:
+                sheet.append([page_number, 1, ""])
+            for line_number, line in enumerate(lines, start=1):
+                sheet.append([page_number, line_number, line])
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return FileBytesResult(buffer.getvalue(), f"{Path(file.name).stem}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+def excel_to_pdf(file) -> PDFBytesResult:
+    workbook = openpyxl.load_workbook(BytesIO(_read_bytes(file)), data_only=True)
+    rows: list[str] = []
+    for sheet in workbook.worksheets:
+        rows.append(f"Sheet: {sheet.title}")
+        for row in sheet.iter_rows(values_only=True):
+            values = [str(v) for v in row if v is not None and str(v).strip()]
+            rows.append(" | ".join(values))
+        rows.append("")
+    return PDFBytesResult(_text_to_pdf_bytes("\n".join(rows), title=file.name), f"{Path(file.name).stem}.pdf")
+
+
+def tool_availability() -> dict[str, bool]:
+    return {
+        "libreoffice": bool(shutil.which("libreoffice") or shutil.which("soffice")),
+        "tesseract": bool(shutil.which("tesseract")),
+        "ghostscript": bool(shutil.which("gs")),
+    }

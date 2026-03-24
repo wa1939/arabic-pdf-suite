@@ -1,6 +1,9 @@
 services:
   app:
     build: .
+    container_name: arabic-pdf-suite
     ports:
-      - "8501:8501"
+      - "3000:3000"
+    environment:
+      PORT: 3000
     restart: unless-stopped

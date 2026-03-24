@@ -11,14 +11,19 @@ from src.pdf_tools import (
     add_text_watermark,
     compress_pdf,
     delete_pages,
+    excel_to_pdf,
     images_to_pdf,
     merge_pdfs,
     page_count,
     parse_page_list,
+    pdf_to_excel,
     pdf_to_images,
+    pdf_to_word,
     reorder_pdf,
     rotate_pdf,
     split_pdf,
+    tool_availability,
+    word_to_pdf,
 )
 from src.text_utils import (
     COLOR_SCHEMES,
@@ -36,291 +41,340 @@ st.set_page_config(page_title="Arabic PDF Suite", page_icon="📄", layout="wide
 
 if "analysis_text" not in st.session_state:
     st.session_state.analysis_text = ""
-if "ui_lang" not in st.session_state:
-    st.session_state.ui_lang = "English"
+if "active_tool" not in st.session_state:
+    st.session_state.active_tool = "Merge PDF"
 
-ui_lang = st.sidebar.radio("Language / اللغة", ["English", "العربية"], index=0 if st.session_state.ui_lang == "English" else 1)
-st.session_state.ui_lang = ui_lang
-is_ar = ui_lang == "العربية"
-rtl = st.sidebar.toggle("RTL layout / تخطيط RTL", value=is_ar)
+TOOLS = [
+    ("Merge PDF", "🧩", "Combine multiple PDFs into one polished file."),
+    ("Split PDF", "✂️", "Export specific pages or page ranges into separate PDFs."),
+    ("Compress PDF", "🗜️", "Reduce PDF size for faster sharing."),
+    ("PDF to Images", "🖼️", "Turn each page into PNG or JPG."),
+    ("Images to PDF", "📚", "Build a single PDF from images."),
+    ("Word to PDF", "📝", "Convert DOCX or TXT into PDF."),
+    ("PDF to Word", "📄", "Extract PDF text into DOCX or TXT."),
+    ("Add Watermark", "💧", "Stamp confidential or branded text over pages."),
+    ("Rotate Pages", "🔄", "Rotate selected pages by 90, 180, or 270 degrees."),
+    ("Delete Pages", "🗑️", "Remove unwanted pages permanently."),
+    ("Reorder Pages", "↕️", "Rearrange pages into a new order."),
+    ("OCR", "🔎", "Arabic + English OCR with searchable PDF output."),
+    ("Arabic Word Cloud", "☁️", "Generate Arabic insights from text, OCR, or Excel."),
+    ("PDF to Excel", "📊", "Extract page lines into a spreadsheet."),
+    ("Excel to PDF", "📈", "Render workbook content into PDF."),
+]
 
-labels = {
-    "title": "Arabic PDF Suite" if not is_ar else "حزمة المستندات العربية",
-    "caption": "Arabic-first OCR, PDF editing, image conversion, watermarking, and word cloud generation." if not is_ar else "أدوات عربية لاستخراج النصوص وتحرير ملفات PDF وتحويل الصور وإضافة العلامة المائية وإنشاء السحابة النصية.",
-    "home": "🏠 Home" if not is_ar else "🏠 الرئيسية",
-    "ocr": "📄 OCR" if not is_ar else "📄 التعرف الضوئي",
-    "pdf": "🧩 PDF Tools" if not is_ar else "🧩 أدوات PDF",
-    "cloud": "☁️ Word Cloud" if not is_ar else "☁️ السحابة النصية",
-    "template": "📝 Templates" if not is_ar else "📝 قوالب",
-    "deploy": "🚀 Deploy" if not is_ar else "🚀 التشغيل",
-}
+ready, missing = system_ready()
+availability = tool_availability()
 
 st.markdown(
-    f"""
+    """
     <style>
-      html, body, [class*="css"] {{direction: {'rtl' if rtl else 'ltr'}; text-align: {'right' if rtl else 'left'};}}
-      .block-container {{max-width: 1180px; padding-top: 1.2rem; padding-bottom: 2rem;}}
-      .hero {{padding: 22px; border: 1px solid #e2e8f0; border-radius: 22px; background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%); box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);}}
-      .tool-card {{padding: 18px; border: 1px solid #e5edf8; border-radius: 18px; background: #ffffff; min-height: 132px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04); margin-bottom: 12px;}}
-      div[data-testid='stMetric'] {{background: #f8fbff; border: 1px solid #dbeafe; padding: 12px; border-radius: 14px;}}
-      .small-note {{color: #5b6470; font-size: 0.92rem;}}
-      .pill {{display:inline-block; padding:6px 10px; border-radius:999px; background:#eef5ff; border:1px solid #dbeafe; margin: 4px 6px 0 0;}}
+    :root {
+        --bg: #f6f8fc;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #5b6470;
+        --line: #e2e8f0;
+        --brand: #e5322d;
+        --brand2: #1d4ed8;
+    }
+    .stApp { background: linear-gradient(180deg,#f8fafc 0%, #eef4ff 100%); }
+    .block-container { max-width: 1220px; padding-top: 1.2rem; padding-bottom: 3rem; }
+    .hero {
+        background: radial-gradient(circle at top right, rgba(29,78,216,.14), transparent 28%),
+                    radial-gradient(circle at top left, rgba(229,50,45,.12), transparent 24%),
+                    #ffffff;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: 0 24px 64px rgba(15,23,42,.08);
+    }
+    .metric-strip {
+        background: rgba(255,255,255,.78);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px 18px;
+        height: 100%;
+    }
+    .tool-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #e6edf7;
+        border-radius: 22px;
+        padding: 18px;
+        min-height: 176px;
+        box-shadow: 0 12px 30px rgba(15,23,42,.06);
+    }
+    .tool-card h4 { margin: .4rem 0; }
+    .tool-card p { color: var(--muted); min-height: 54px; }
+    .section-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 22px;
+        box-shadow: 0 14px 34px rgba(15,23,42,.05);
+    }
+    .pill { display:inline-block; padding:7px 12px; border-radius:999px; border:1px solid #dbeafe; background:#eff6ff; margin-right:8px; margin-top:8px; font-size:.9rem; }
+    div[data-testid='stMetric'] { background:#fff; border:1px solid #e6edf7; padding:8px; border-radius:16px; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.title(labels["title"])
-st.caption(labels["caption"])
-
-with st.container(border=True):
-    ready, missing = system_ready()
-    a, b, c = st.columns(3)
-    a.metric("OCR", "Ready" if ready else "Unavailable")
-    b.metric("Privacy", "No signup" if not is_ar else "بدون تسجيل")
-    c.metric("Storage", "Temporary" if not is_ar else "مؤقت")
-    if ready:
-        st.success("OCR is ready on this machine." if not is_ar else "خدمة OCR جاهزة على هذا الجهاز.")
-    else:
-        st.warning((f"OCR is unavailable here. Missing system packages: {', '.join(missing)}") if not is_ar else (f"خدمة OCR غير متاحة حالياً. الحزم الناقصة: {', '.join(missing)}"))
-        st.caption(vercel_friendly_note())
-
-home_tab, ocr_tab, pdf_tab, cloud_tab, template_tab, deploy_tab = st.tabs(
-    [labels["home"], labels["ocr"], labels["pdf"], labels["cloud"], labels["template"], labels["deploy"]]
+st.markdown(
+    """
+    <div class='hero'>
+      <div style='display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;'>
+        <div style='max-width:760px;'>
+          <div style='font-size:.95rem;color:#e5322d;font-weight:700;margin-bottom:8px;'>Arabic PDF Suite</div>
+          <h1 style='margin:0 0 10px 0;font-size:2.5rem;line-height:1.05;color:#0f172a;'>A proper PDF workspace, not a glorified demo.</h1>
+          <p style='margin:0;color:#475569;font-size:1.08rem;'>Merge, split, convert, OCR, watermark, analyze, and package Arabic-first documents in one clean interface. Built for real work, not vibes.</p>
+          <div>
+            <span class='pill'>Arabic-first</span>
+            <span class='pill'>No signup</span>
+            <span class='pill'>Runs locally or self-hosted</span>
+            <span class='pill'>Port 3000 ready</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-with home_tab:
-    st.markdown(
-        f"""
-        <div class='hero'>
-          <h3 style='margin:0 0 8px 0;'>{'One clean Arabic document workspace' if not is_ar else 'مساحة واحدة نظيفة للمستندات العربية'}</h3>
-          <p style='margin:0;'>{'Upload a PDF, extract text, convert pages to images, rebuild image scans into PDFs, add watermarks, and generate Arabic word clouds.' if not is_ar else 'ارفع ملف PDF، استخرج النص، حوّل الصفحات إلى صور، حوّل الصور إلى PDF، أضف علامة مائية، وأنشئ سحابة نصية عربية.'}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.write("")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown(f"<div class='tool-card'><h4>📄 {'OCR PDF' if not is_ar else 'استخراج النص من PDF'}</h4><p>{'Turn Arabic PDFs into searchable PDFs and extracted text.' if not is_ar else 'حوّل ملفات PDF العربية إلى ملفات قابلة للبحث مع نص مستخرج.'}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='tool-card'><h4>🧩 {'PDF + Image Tools' if not is_ar else 'أدوات PDF والصور'}</h4><p>{'Merge, split, delete, rotate, reorder, convert PDF pages to images, and convert images back to PDF.' if not is_ar else 'دمج وتقسيم وحذف وتدوير وترتيب الصفحات وتحويل صفحات PDF إلى صور وتحويل الصور إلى PDF.'}</p></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='tool-card'><h4>💧 {'Watermark' if not is_ar else 'العلامة المائية'}</h4><p>{'Apply a text watermark to selected pages with one click.' if not is_ar else 'أضف علامة مائية نصية إلى صفحات محددة بسهولة.'}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='tool-card'><h4>☁️ {'Arabic Word Cloud' if not is_ar else 'السحابة النصية العربية'}</h4><p>{'Arabic shaping is handled before rendering so letters stay connected and RTL-safe.' if not is_ar else 'يتم تشكيل الكلمات العربية قبل الرسم حتى تبقى الحروف متصلة وباتجاه صحيح.'}</p></div>", unsafe_allow_html=True)
+st.write("")
+mc1, mc2, mc3, mc4 = st.columns(4)
+mc1.metric("PDF tools", "15")
+mc2.metric("OCR", "Ready" if ready else "Missing deps")
+mc3.metric("Desktop packaging", "Included")
+mc4.metric("Deployment targets", "Vercel · Railway · Docker")
 
-with ocr_tab:
-    st.subheader("OCR Arabic PDF" if not is_ar else "OCR لملفات PDF العربية")
-    pdf = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="ocr_pdf")
-    run_button = st.button("Run OCR" if not is_ar else "تشغيل OCR", type="primary", disabled=pdf is None or not ready)
+st.write("")
+st.subheader("Toolbox")
+card_columns = st.columns(3)
+for idx, (name, icon, desc) in enumerate(TOOLS):
+    with card_columns[idx % 3]:
+        st.markdown(f"<div class='tool-card'><div style='font-size:1.8rem'>{icon}</div><h4>{name}</h4><p>{desc}</p></div>", unsafe_allow_html=True)
+        if st.button(f"Open {name}", key=f"open-{name}", use_container_width=True):
+            st.session_state.active_tool = name
 
-    if run_button and pdf is not None:
-        try:
-            with st.spinner("Running OCR..." if not is_ar else "جاري تشغيل OCR..."):
-                result = run_ocr(pdf.getvalue(), pdf.name)
-                extracted_text = result.txt_path.read_text(encoding="utf-8", errors="ignore")
-                st.session_state.analysis_text = extracted_text
-            st.success("OCR finished." if not is_ar else "اكتمل OCR.")
-            x, y = st.columns(2)
-            x.download_button("Download searchable PDF" if not is_ar else "تنزيل PDF قابل للبحث", result.pdf_path.read_bytes(), result.pdf_path.name, mime="application/pdf")
-            y.download_button("Download extracted TXT" if not is_ar else "تنزيل النص المستخرج", extracted_text.encode("utf-8"), result.txt_path.name, mime="text/plain")
-            st.text_area("Extracted text" if not is_ar else "النص المستخرج", extracted_text, height=260)
-        except Exception as exc:
-            st.error(str(exc))
+st.write("")
+left, right = st.columns([1.1, 2.2], gap="large")
 
-with pdf_tab:
-    st.subheader("PDF Tools" if not is_ar else "أدوات PDF")
-    tool_options = [
-        "Merge PDFs",
-        "Split PDF",
-        "Delete pages",
-        "Rotate pages",
-        "Reorder pages",
-        "Compress PDF",
-        "PDF to images",
-        "Images to PDF",
-        "Watermark PDF",
-    ]
-    tool = st.selectbox("Choose tool" if not is_ar else "اختر الأداة", tool_options)
+with left:
+    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+    st.subheader("Control Panel")
+    selected = st.selectbox("Choose a tool", [name for name, _, _ in TOOLS], index=[name for name, _, _ in TOOLS].index(st.session_state.active_tool))
+    st.session_state.active_tool = selected
+    st.caption("Everything routes through one cleaner workflow. Much better than burying users in random tabs.")
+    if ready:
+        st.success("OCR stack is installed.")
+    else:
+        st.warning(f"OCR dependencies missing: {', '.join(missing)}")
+        st.caption(vercel_friendly_note())
+    st.markdown("**Conversion notes**")
+    st.markdown(f"- LibreOffice: {'Yes' if availability['libreoffice'] else 'No'}")
+    st.markdown(f"- Tesseract: {'Yes' if availability['tesseract'] else 'No'}")
+    st.markdown(f"- Ghostscript: {'Yes' if availability['ghostscript'] else 'No'}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with right:
+    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+    tool = st.session_state.active_tool
+    st.subheader(tool)
 
     try:
-        if tool == "Merge PDFs":
-            files = st.file_uploader("Upload PDFs" if not is_ar else "ارفع ملفات PDF", type=["pdf"], accept_multiple_files=True, key="merge_pdf")
-            if st.button("Merge PDFs" if not is_ar else "دمج الملفات", type="primary", disabled=not files):
+        if tool == "Merge PDF":
+            files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True, key="merge_pdf")
+            if st.button("Merge now", type="primary", disabled=not files):
                 merged = merge_pdfs(files)
-                st.download_button("Download merged PDF" if not is_ar else "تنزيل الملف المدمج", merged.data, merged.filename, mime="application/pdf")
+                st.download_button("Download merged PDF", merged.data, merged.filename, mime="application/pdf")
 
         elif tool == "Split PDF":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="split_pdf")
-            ranges = st.text_input("Pages or ranges" if not is_ar else "الصفحات أو النطاقات", placeholder="1-3,5,7-9")
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="split_pdf")
+            ranges = st.text_input("Pages or ranges", placeholder="1-3,5,7-9")
             if file:
                 st.caption(f"Total pages: {page_count(file)}")
-            if st.button("Split PDF" if not is_ar else "تقسيم الملف", type="primary", disabled=not file or not ranges.strip()):
+            if st.button("Split PDF", type="primary", disabled=not file or not ranges.strip()):
                 zip_data = split_pdf(file, ranges)
-                st.download_button("Download ZIP" if not is_ar else "تنزيل ZIP", zip_data, "split_pdfs.zip", mime="application/zip")
-
-        elif tool == "Delete pages":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="delete_pdf")
-            pages = st.text_input("Pages to delete" if not is_ar else "الصفحات المراد حذفها", placeholder="2,4,8")
-            if file:
-                st.caption(f"Total pages: {page_count(file)}")
-            if st.button("Delete selected pages" if not is_ar else "حذف الصفحات", type="primary", disabled=not file or not pages.strip()):
-                result = delete_pages(file, parse_page_list(pages))
-                st.download_button("Download cleaned PDF" if not is_ar else "تنزيل الملف بعد الحذف", result.data, result.filename, mime="application/pdf")
-
-        elif tool == "Rotate pages":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="rotate_pdf")
-            pages = st.text_input("Pages to rotate" if not is_ar else "الصفحات المراد تدويرها", placeholder="1,2")
-            angle = st.selectbox("Angle" if not is_ar else "الزاوية", [90, 180, 270])
-            if file:
-                st.caption(f"Total pages: {page_count(file)}")
-            if st.button("Rotate pages" if not is_ar else "تدوير الصفحات", type="primary", disabled=not file or not pages.strip()):
-                result = rotate_pdf(file, parse_page_list(pages), angle)
-                st.download_button("Download rotated PDF" if not is_ar else "تنزيل الملف", result.data, result.filename, mime="application/pdf")
-
-        elif tool == "Reorder pages":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="reorder_pdf")
-            order = st.text_input("New page order" if not is_ar else "ترتيب الصفحات الجديد", placeholder="3,1,2,4")
-            if file:
-                count = page_count(file)
-                st.caption((f"Total pages: {count}. Enter every page exactly once.") if not is_ar else f"عدد الصفحات: {count}. أدخل كل صفحة مرة واحدة فقط.")
-            if st.button("Reorder PDF" if not is_ar else "إعادة الترتيب", type="primary", disabled=not file or not order.strip()):
-                result = reorder_pdf(file, parse_page_list(order))
-                st.download_button("Download reordered PDF" if not is_ar else "تنزيل الملف", result.data, result.filename, mime="application/pdf")
+                st.download_button("Download ZIP", zip_data, "split_pdfs.zip", mime="application/zip")
 
         elif tool == "Compress PDF":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="compress_pdf")
-            if file and st.button("Compress PDF" if not is_ar else "ضغط الملف", type="primary"):
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="compress_pdf")
+            if file and st.button("Compress", type="primary"):
                 result = compress_pdf(file)
-                st.download_button("Download compressed PDF" if not is_ar else "تنزيل الملف المضغوط", result.data, result.filename, mime="application/pdf")
+                st.download_button("Download compressed PDF", result.data, result.filename, mime="application/pdf")
 
-        elif tool == "PDF to images":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="pdf_to_images")
-            dpi = st.slider("DPI", 72, 300, 150, 12)
-            fmt = st.selectbox("Image format" if not is_ar else "صيغة الصورة", ["png", "jpg"])
-            if file and st.button("Extract pages as images" if not is_ar else "استخراج الصفحات كصور", type="primary"):
+        elif tool == "PDF to Images":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="pdf_to_images")
+            dpi = st.slider("DPI", 72, 300, 150, 6)
+            fmt = st.segmented_control("Format", ["png", "jpg"], default="png")
+            if file and st.button("Extract pages", type="primary"):
                 zip_data = pdf_to_images(file, image_format=fmt, dpi=dpi)
-                st.download_button("Download images ZIP" if not is_ar else "تنزيل الصور ZIP", zip_data, "pdf_pages.zip", mime="application/zip")
+                st.download_button("Download images ZIP", zip_data, "pdf_pages.zip", mime="application/zip")
 
         elif tool == "Images to PDF":
-            files = st.file_uploader("Upload images" if not is_ar else "ارفع الصور", type=["png", "jpg", "jpeg", "webp"], accept_multiple_files=True, key="images_to_pdf")
-            if files and st.button("Convert images to PDF" if not is_ar else "تحويل الصور إلى PDF", type="primary"):
+            files = st.file_uploader("Upload images", type=["png", "jpg", "jpeg", "webp"], accept_multiple_files=True, key="images_to_pdf")
+            if files and st.button("Convert to PDF", type="primary"):
                 result = images_to_pdf(files)
-                st.download_button("Download PDF" if not is_ar else "تنزيل PDF", result.data, result.filename, mime="application/pdf")
+                st.download_button("Download PDF", result.data, result.filename, mime="application/pdf")
 
-        elif tool == "Watermark PDF":
-            file = st.file_uploader("Upload PDF" if not is_ar else "ارفع ملف PDF", type=["pdf"], key="watermark_pdf")
-            watermark_text = st.text_input("Watermark text" if not is_ar else "نص العلامة المائية", value="سري / Confidential")
-            pages = st.text_input("Pages (optional)" if not is_ar else "الصفحات (اختياري)", placeholder="1-3,5")
-            opacity = st.slider("Opacity" if not is_ar else "الشفافية", 0.05, 0.9, 0.18, 0.01)
-            rotation = st.slider("Rotation" if not is_ar else "الدوران", -90, 90, 35, 5)
-            if file and st.button("Add watermark" if not is_ar else "إضافة علامة مائية", type="primary"):
+        elif tool == "Word to PDF":
+            file = st.file_uploader("Upload DOCX or TXT", type=["docx", "txt"], key="word_to_pdf")
+            st.caption("Pragmatic mode: DOCX/TXT content is rendered into a clean PDF.")
+            if file and st.button("Convert Word to PDF", type="primary"):
+                result = word_to_pdf(file)
+                st.download_button("Download PDF", result.data, result.filename, mime="application/pdf")
+
+        elif tool == "PDF to Word":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="pdf_to_word")
+            st.caption("Exports extracted text into DOCX when possible, otherwise TXT.")
+            if file and st.button("Convert PDF to Word", type="primary"):
+                result = pdf_to_word(file)
+                st.download_button("Download file", result.data, result.filename, mime=result.mime_type)
+
+        elif tool == "Add Watermark":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="watermark_pdf")
+            watermark_text = st.text_input("Watermark text", value="سري / Confidential")
+            pages = st.text_input("Pages (optional)", placeholder="1-3,5")
+            opacity = st.slider("Opacity", 0.05, 0.9, 0.18, 0.01)
+            rotation = st.slider("Rotation", -90, 90, 35, 5)
+            if file and st.button("Apply watermark", type="primary"):
                 page_values = parse_page_list(pages) if pages.strip() else None
                 result = add_text_watermark(file, watermark_text, pages=page_values, opacity=opacity, rotation=rotation)
-                st.download_button("Download watermarked PDF" if not is_ar else "تنزيل الملف", result.data, result.filename, mime="application/pdf")
-    except Exception as exc:
-        st.error(f"PDF tool failed: {exc}")
+                st.download_button("Download watermarked PDF", result.data, result.filename, mime="application/pdf")
 
-with cloud_tab:
-    st.subheader("Arabic Word Cloud" if not is_ar else "السحابة النصية العربية")
-    st.caption("Arabic words are tokenized first, then reshaped before rendering for safer connected letters." if not is_ar else "يتم تقطيع الكلمات العربية أولاً ثم تشكيلها قبل الرسم لضمان الحروف المتصلة بشكل أفضل.")
-    source = st.radio("Input source" if not is_ar else "مصدر النص", ["Paste text", "Upload TXT", "Upload Excel", "Use last OCR result"], horizontal=True)
+        elif tool == "Rotate Pages":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="rotate_pdf")
+            pages = st.text_input("Pages to rotate", placeholder="1,2")
+            angle = st.selectbox("Angle", [90, 180, 270])
+            if file:
+                st.caption(f"Total pages: {page_count(file)}")
+            if st.button("Rotate pages", type="primary", disabled=not file or not pages.strip()):
+                result = rotate_pdf(file, parse_page_list(pages), angle)
+                st.download_button("Download rotated PDF", result.data, result.filename, mime="application/pdf")
 
-    text_value = ""
-    if source == "Paste text":
-        text_value = st.text_area("Arabic text" if not is_ar else "النص العربي", st.session_state.analysis_text, height=220, placeholder="Paste Arabic text here..." if not is_ar else "الصق النص العربي هنا...")
-    elif source == "Upload TXT":
-        txt_file = st.file_uploader("Upload TXT" if not is_ar else "ارفع TXT", type=["txt"], key="txt_uploader")
-        if txt_file:
-            text_value = extract_text_from_txt(txt_file.getvalue())
-            st.text_area("Preview" if not is_ar else "معاينة", text_value, height=220)
-    elif source == "Upload Excel":
-        xlsx = st.file_uploader("Upload Excel" if not is_ar else "ارفع Excel", type=["xlsx", "xls"], key="xlsx_uploader")
-        preferred_column = st.text_input("Column name (optional)" if not is_ar else "اسم العمود (اختياري)", value="النص المراد تحليله")
-        if xlsx:
-            text_value = extract_text_from_excel(xlsx.getvalue(), preferred_column=preferred_column.strip() or None)
-            st.text_area("Preview" if not is_ar else "معاينة", text_value, height=220)
-    else:
-        text_value = st.session_state.analysis_text
-        st.text_area("Last OCR text" if not is_ar else "آخر نص OCR", text_value, height=220)
+        elif tool == "Delete Pages":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="delete_pdf")
+            pages = st.text_input("Pages to delete", placeholder="2,4,8")
+            if file:
+                st.caption(f"Total pages: {page_count(file)}")
+            if st.button("Delete selected pages", type="primary", disabled=not file or not pages.strip()):
+                result = delete_pages(file, parse_page_list(pages))
+                st.download_button("Download cleaned PDF", result.data, result.filename, mime="application/pdf")
 
-    clean_text = normalize_text(text_value)
-    st.markdown("#### Customize" if not is_ar else "#### التخصيص")
-    col1, col2 = st.columns(2)
-    with col1:
-        available_fonts = get_available_fonts()
-        font_names = list(available_fonts.keys())
-        selected_font = st.selectbox("Font" if not is_ar else "الخط", font_names, index=0 if font_names else None)
-        selected_scheme = st.selectbox("Color scheme" if not is_ar else "نظام الألوان", list(COLOR_SCHEMES.keys()), index=list(COLOR_SCHEMES.keys()).index("ELM Brand"))
-        transparent = st.checkbox("Transparent background" if not is_ar else "خلفية شفافة", value=True)
-        bg_color = st.color_picker("Background color" if not is_ar else "لون الخلفية", "#FFFFFF", disabled=transparent)
-    with col2:
-        max_words = st.slider("Max words" if not is_ar else "أقصى عدد كلمات", 50, 500, 200, 10)
-        width = st.slider("Width" if not is_ar else "العرض", 400, 2000, 900, 50)
-        height = st.slider("Height" if not is_ar else "الارتفاع", 400, 2000, 800, 50)
+        elif tool == "Reorder Pages":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="reorder_pdf")
+            order = st.text_input("New page order", placeholder="3,1,2,4")
+            if file:
+                count = page_count(file)
+                st.caption(f"Total pages: {count}. Enter every page exactly once.")
+            if st.button("Reorder PDF", type="primary", disabled=not file or not order.strip()):
+                result = reorder_pdf(file, parse_page_list(order))
+                st.download_button("Download reordered PDF", result.data, result.filename, mime="application/pdf")
 
-    with st.expander("🔤 Filler words (stopwords)" if not is_ar else "🔤 الكلمات المستبعدة", expanded=False):
-        extra_fillers = st.text_area("Add more fillers" if not is_ar else "أضف كلمات مستبعدة", placeholder="مثال: كلمة، كلمة أخرى")
-        exclude_fillers = st.text_area("Remove from default fillers" if not is_ar else "إزالة من الكلمات المستبعدة الافتراضية", placeholder="مثال: كلمة")
-        extra_stopwords = [w.strip() for w in re.split(r'[,\s]+', extra_fillers) if w.strip()]
-        exclude_stopwords = [w.strip() for w in re.split(r'[,\s]+', exclude_fillers) if w.strip()]
-    if 'extra_stopwords' not in locals():
-        extra_stopwords, exclude_stopwords = [], []
+        elif tool == "OCR":
+            pdf = st.file_uploader("Upload PDF", type=["pdf"], key="ocr_pdf")
+            language = st.selectbox("OCR language", [("ara", "Arabic"), ("eng", "English"), ("ara+eng", "Arabic + English")], format_func=lambda item: item[1])
+            if st.button("Run OCR", type="primary", disabled=pdf is None or not ready):
+                with st.spinner("Running OCR…"):
+                    result = run_ocr(pdf.getvalue(), pdf.name, language=language[0])
+                    extracted_text = result.txt_path.read_text(encoding="utf-8", errors="ignore")
+                    st.session_state.analysis_text = extracted_text
+                st.success("OCR finished.")
+                x, y = st.columns(2)
+                x.download_button("Download searchable PDF", result.pdf_path.read_bytes(), result.pdf_path.name, mime="application/pdf")
+                y.download_button("Download extracted TXT", extracted_text.encode("utf-8"), result.txt_path.name, mime="text/plain")
+                st.text_area("Extracted text", extracted_text, height=240)
 
-    if st.button("Generate word cloud" if not is_ar else "إنشاء السحابة النصية", type="primary", disabled=not bool(clean_text.strip())):
-        with st.spinner("Generating word cloud..." if not is_ar else "جاري إنشاء السحابة..."):
-            image = make_wordcloud(
-                clean_text,
-                font_name=selected_font,
-                color_scheme=selected_scheme,
-                background_color=None if transparent else bg_color,
-                max_words=max_words,
-                prefer_horizontal=0.9,
-                width=width,
-                height=height,
-                transparent=transparent,
-                extra_stopwords=extra_stopwords or None,
-                exclude_stopwords=exclude_stopwords or None,
-            )
-            debug = build_wordcloud_debug_report(clean_text)
-        active_stopwords = None
-        if extra_stopwords or exclude_stopwords:
-            active_stopwords = list(DEFAULT_STOPWORDS)
-            if extra_stopwords:
+        elif tool == "Arabic Word Cloud":
+            source = st.radio("Input source", ["Paste text", "Upload TXT", "Upload Excel", "Use last OCR result"], horizontal=True)
+            text_value = ""
+            if source == "Paste text":
+                text_value = st.text_area("Arabic text", st.session_state.analysis_text, height=220)
+            elif source == "Upload TXT":
+                txt_file = st.file_uploader("Upload TXT", type=["txt"], key="txt_uploader")
+                if txt_file:
+                    text_value = extract_text_from_txt(txt_file.getvalue())
+                    st.text_area("Preview", text_value, height=220)
+            elif source == "Upload Excel":
+                xlsx = st.file_uploader("Upload Excel", type=["xlsx", "xls"], key="xlsx_uploader")
+                preferred_column = st.text_input("Column name (optional)", value="النص المراد تحليله")
+                if xlsx:
+                    text_value = extract_text_from_excel(xlsx.getvalue(), preferred_column=preferred_column.strip() or None)
+                    st.text_area("Preview", text_value, height=220)
+            else:
+                text_value = st.session_state.analysis_text
+                st.text_area("Last OCR text", text_value, height=220)
+
+            clean_text = normalize_text(text_value)
+            c1, c2 = st.columns(2)
+            with c1:
+                available_fonts = get_available_fonts()
+                font_names = list(available_fonts.keys())
+                selected_font = st.selectbox("Font", font_names, index=0 if font_names else None)
+                selected_scheme = st.selectbox("Color scheme", list(COLOR_SCHEMES.keys()), index=list(COLOR_SCHEMES.keys()).index("ELM Brand"))
+                transparent = st.checkbox("Transparent background", value=True)
+                bg_color = st.color_picker("Background color", "#FFFFFF", disabled=transparent)
+            with c2:
+                max_words = st.slider("Max words", 50, 500, 200, 10)
+                width = st.slider("Width", 400, 2000, 900, 50)
+                height = st.slider("Height", 400, 2000, 800, 50)
+
+            with st.expander("Filler words"):
+                extra_fillers = st.text_area("Add more fillers", placeholder="مثال: كلمة، كلمة أخرى")
+                exclude_fillers = st.text_area("Remove from default fillers", placeholder="مثال: كلمة")
+                extra_stopwords = [w.strip() for w in re.split(r'[,\s]+', extra_fillers) if w.strip()]
+                exclude_stopwords = [w.strip() for w in re.split(r'[,\s]+', exclude_fillers) if w.strip()]
+
+            if st.button("Generate word cloud", type="primary", disabled=not bool(clean_text.strip())):
+                with st.spinner("Generating word cloud…"):
+                    image = make_wordcloud(
+                        clean_text,
+                        font_name=selected_font,
+                        color_scheme=selected_scheme,
+                        background_color=None if transparent else bg_color,
+                        max_words=max_words,
+                        prefer_horizontal=0.9,
+                        width=width,
+                        height=height,
+                        transparent=transparent,
+                        extra_stopwords=extra_stopwords or None,
+                        exclude_stopwords=exclude_stopwords or None,
+                    )
+                    debug = build_wordcloud_debug_report(clean_text)
+                active_stopwords = list(DEFAULT_STOPWORDS)
                 active_stopwords.extend(extra_stopwords)
-            if exclude_stopwords:
-                excluded = set(exclude_stopwords)
-                active_stopwords = [w for w in active_stopwords if w not in excluded]
-        top = top_terms(clean_text, limit=15, stopwords=active_stopwords)
-        st.image(image, caption="Arabic word cloud" if not is_ar else "السحابة النصية العربية", use_container_width=True)
-        img_buffer = BytesIO()
-        image.save(img_buffer, format="PNG")
-        st.download_button("Download PNG" if not is_ar else "تنزيل PNG", img_buffer.getvalue(), file_name="arabic_wordcloud.png", mime="image/png")
-        if top:
-            st.dataframe(pd.DataFrame(top, columns=["Word" if not is_ar else "الكلمة", "Count" if not is_ar else "العدد"]), use_container_width=True, hide_index=True)
-        with st.expander("Debug details" if not is_ar else "تفاصيل الفحص"):
-            st.json(debug)
+                active_stopwords = [w for w in active_stopwords if w not in set(exclude_stopwords)]
+                top = top_terms(clean_text, limit=15, stopwords=active_stopwords)
+                st.image(image, caption="Arabic word cloud", use_container_width=True)
+                img_buffer = BytesIO()
+                image.save(img_buffer, format="PNG")
+                st.download_button("Download PNG", img_buffer.getvalue(), file_name="arabic_wordcloud.png", mime="image/png")
+                if top:
+                    st.dataframe(pd.DataFrame(top, columns=["Word", "Count"]), use_container_width=True, hide_index=True)
+                with st.expander("Debug details"):
+                    st.json(debug)
 
-with template_tab:
-    st.subheader("Templates" if not is_ar else "قوالب")
-    template = st.selectbox("Choose template" if not is_ar else "اختر القالب", [
-        "Workshop feedback",
-        "Employee comments",
-        "Student feedback",
-        "Customer feedback",
-    ])
-    defaults = {
-        "Workshop feedback": "اكتب تعليقات الورشة هنا ثم ولّد السحابة النصية",
-        "Employee comments": "اكتب تعليقات الموظفين هنا ثم ولّد السحابة النصية",
-        "Student feedback": "اكتب تعليقات الطلاب هنا ثم ولّد السحابة النصية",
-        "Customer feedback": "اكتب تعليقات العملاء هنا ثم ولّد السحابة النصية",
-    }
-    temp_text = st.text_area("Template text" if not is_ar else "نص القالب", defaults[template], height=220)
-    if st.button("Use in Word Cloud" if not is_ar else "استخدام في السحابة النصية", type="primary"):
-        st.session_state.analysis_text = temp_text
-        st.success("Template text moved to the Word Cloud tab." if not is_ar else "تم نقل النص إلى تبويب السحابة النصية.")
+        elif tool == "PDF to Excel":
+            file = st.file_uploader("Upload PDF", type=["pdf"], key="pdf_to_excel")
+            st.caption("Exports one row per extracted text line. Reliable, simple, useful.")
+            if file and st.button("Convert PDF to Excel", type="primary"):
+                result = pdf_to_excel(file)
+                st.download_button("Download Excel", result.data, result.filename, mime=result.mime_type)
 
-with deploy_tab:
-    st.subheader("Deploy or run locally" if not is_ar else "التشغيل أو النشر")
-    st.markdown("**Hosted version**: Railway, Render, Fly.io, or any VPS with Docker." if not is_ar else "**النسخة المستضافة**: Railway أو Render أو Fly.io أو أي VPS يدعم Docker.")
-    st.markdown("**Local version**: run `./run.sh` on macOS/Linux or `run.bat` on Windows." if not is_ar else "**النسخة المحلية**: شغّل `./run.sh` على macOS/Linux أو `run.bat` على Windows.")
-    st.code("docker compose up --build", language="bash")
+        elif tool == "Excel to PDF":
+            file = st.file_uploader("Upload Excel", type=["xlsx", "xlsm", "xltx", "xltm"], key="excel_to_pdf")
+            if file and st.button("Convert Excel to PDF", type="primary"):
+                result = excel_to_pdf(file)
+                st.download_button("Download PDF", result.data, result.filename, mime="application/pdf")
+
+    except Exception as exc:
+        st.error(f"Tool failed: {exc}")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.write("")
+ft1, ft2 = st.columns(2)
+with ft1:
+    st.markdown("<div class='section-card'><h4>Deployment</h4><p>Docker, Railway, Render, and Vercel configs are included. Full OCR needs Docker or a real host because system binaries matter.</p></div>", unsafe_allow_html=True)
+with ft2:
+    st.markdown("<div class='section-card'><h4>Desktop Packaging</h4><p>PyInstaller, macOS app bundle script, and Linux AppImage/snap scaffolding are included so this can ship like an actual product.</p></div>", unsafe_allow_html=True)

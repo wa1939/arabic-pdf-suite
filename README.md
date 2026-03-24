@@ -1,209 +1,175 @@
 # Arabic PDF Suite
 
-A single lightweight app that merges your existing projects into one Arabic-first document tool.
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![Docker](https://img.shields.io/badge/Deploy-Docker-2496ED?logo=docker&logoColor=white)
+![Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?logo=railway&logoColor=white)
+![Arabic OCR](https://img.shields.io/badge/OCR-Arabic%20%2B%20English-0f766e)
 
-## Included in one app
-- **Arabic OCR**: searchable PDF + extracted TXT
-- **PDF tools**: merge, split, delete pages, rotate, reorder
-- **Arabic word cloud**: from OCR text, pasted text, TXT, or Excel
-- **Templates**: ready-made text starters for surveys, feedback, and workshops
+Arabic PDF Suite is a polished, Arabic-first document workspace inspired by the clean utility flow of ILovePDF.com.
 
-Think of it as a lightweight **Arabic PDF suite**.
+It handles the boring, annoying PDF jobs properly: merge, split, compress, convert, OCR, watermark, reorder, and generate Arabic word clouds from document content.
 
----
+## What’s included
 
-## What makes this useful
-- one repo
-- one app
-- no signup
-- no permanent file storage
-- easy for non-technical users
-- one-click local run
-- one-click hosted deployment on Docker-friendly platforms
+### PDF + document tools
+- Merge PDF
+- Split PDF
+- Compress PDF
+- PDF to Images
+- Images to PDF
+- Word to PDF
+- PDF to Word
+- Add Watermark
+- Rotate Pages
+- Delete Pages
+- Reorder Pages
+- OCR (Arabic + English)
+- Arabic Word Cloud
+- PDF to Excel
+- Excel to PDF
 
----
+## Product highlights
+- Modern card-based UI
+- Cleaner single-workspace flow instead of tab chaos
+- Arabic-first text handling
+- OCR-ready on Docker or local installs with system packages
+- Port 3000 default for easier hosting
+- Desktop packaging scaffolding for Windows, macOS, and Linux
+- Install scripts for Windows and Unix
+- Screenshot assets and capture script
+
+## Screenshots
+
+### Home
+![Home](docs/screenshots/home.svg)
+
+### Workspace
+![Workspace](docs/screenshots/tools.svg)
+
+> Replace the placeholder SVGs with live captures by running `python scripts/capture_screenshots.py` and grabbing browser shots from the local app.
 
 ## Quick start
 
-### One click local run
-#### Windows
-Double-click:
-- `run.bat`
-
-#### macOS / Linux
+### Local run
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
 
-### One command Docker run
+Windows:
+```bat
+run.bat
+```
+
+Open: <http://localhost:3000>
+
+### One-line install
+```bash
+curl -fsSL https://raw.githubusercontent.com/wa1939/arabic-pdf-suite/main/install.sh | bash
+```
+
+## Deploy
+
+### Docker Compose
 ```bash
 docker compose up --build
 ```
 
-Open:
-- <http://localhost:8501>
+### Railway
+- Connect the repo
+- Use the included `Dockerfile`
+- Expose port `3000`
 
----
+### Vercel
+A `vercel.json` scaffold is included for lightweight Python hosting, but full OCR is not recommended on Vercel because Ghostscript and Tesseract are not natural serverless dependencies.
 
-## Hosted deployment
-This repo is prepared for Docker-based hosting.
+### Render
+`render.yaml` is included for Docker deployment.
 
-### Deploy to Railway
-1. Create a new project in Railway
-2. Connect this repo
-3. Railway will detect `railway.json` + `Dockerfile`
-4. Deploy
+Full notes: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-### Deploy to Render
-1. Create a new Web Service from this repo
-2. Render will detect `render.yaml`
-3. Deploy
+## Desktop packaging
 
-### Deploy anywhere with Docker
+### Windows `.exe`
 ```bash
-docker build -t arabic-pdf-suite .
-docker run --rm -p 8501:8501 arabic-pdf-suite
+pyinstaller packaging/pyinstaller.spec
 ```
 
----
-
-## Features
-
-### 1) OCR Arabic PDF
-Upload a PDF and get:
-- searchable PDF
-- extracted UTF-8 text
-- text ready for the Word Cloud tab
-
-### 2) PDF Tools
-- merge PDFs
-- split PDF by page ranges
-- delete selected pages
-- rotate selected pages
-- reorder pages
-
-### 3) Word Cloud
-Generate Arabic word clouds from:
-- pasted text
-- TXT files
-- Excel files
-- OCR output from uploaded PDF
-
-### 4) Templates
-Use simple text templates for:
-- workshop feedback
-- employee comments
-- student feedback
-- customer feedback
-
----
-
-## Why this stack
-This is intentionally a **single Streamlit app** because it is:
-- fast to ship
-- simple to maintain
-- easy to package
-- easy to self-host
-- good enough for a public utility tool
-
-For OCR, the app uses system tools:
-- **Tesseract OCR**
-- **Ghostscript**
-
-That means:
-- great for Docker/self-host/VPS/Railway/Render/Fly
-- not a clean fit for Vercel OCR
-
----
-
-## Manual local setup
-
-### 1) Install system dependencies
-
-#### Ubuntu / Debian
+### macOS `.app`
 ```bash
-sudo apt-get update
-sudo apt-get install -y tesseract-ocr tesseract-ocr-ara ghostscript qpdf pngquant
+bash packaging/build-macos-app.sh
 ```
 
-#### macOS
+### Linux AppImage / snap
 ```bash
-brew install tesseract ghostscript qpdf pngquant
-brew install tesseract-lang
+bash packaging/build-linux-appimage.sh
+snapcraft
 ```
 
-#### Windows
-Install:
-- Tesseract OCR
-- Arabic language pack (`ara`)
-- Ghostscript
+## Local development
 
-### 2) Python dependencies
+### Python deps
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3) Run
+### System deps
+Ubuntu / Debian:
 ```bash
-streamlit run app.py
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng ghostscript qpdf pngquant libreoffice-writer libreoffice-calc
 ```
 
----
-
-## Privacy
-Recommended product promise:
-- no signup
-- no permanent file storage
-- files processed temporarily and deleted
-
-For maximum privacy, run locally or self-host.
-
----
+### Run tests
+```bash
+pytest
+```
 
 ## Repo structure
 ```text
-.
+arabic-pdf-suite/
 ├── app.py
+├── src/
+│   ├── ocr_service.py
+│   ├── pdf_tools.py
+│   └── text_utils.py
+├── tests/
+├── docs/
+├── packaging/
+├── snap/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── railway.json
 ├── render.yaml
-├── requirements.txt
-├── run.bat
-├── run.sh
-├── .gitignore
-└── src/
-    ├── ocr_service.py
-    ├── pdf_tools.py
-    └── text_utils.py
+├── vercel.json
+├── install.sh
+├── install.bat
+└── scripts/
 ```
 
----
+## Conversion notes
+- OCR: best on Docker/local/VPS where Tesseract and Ghostscript are installed.
+- PDF to Word: exports extracted text into DOCX when supported, otherwise TXT fallback.
+- Word to PDF: pragmatic DOCX/TXT rendering into PDF.
+- PDF to Excel: exports one row per extracted text line for reliability.
+- Excel to PDF: renders workbook content into a readable PDF summary.
 
-## Roadmap
+## Privacy
+- No signup
+- Temporary processing
+- Best deployed locally or on your own infrastructure if privacy matters
 
-### Done
-- merge your two repos into one app
-- add PDF tools
-- add one-click local launch
-- add Docker deploy
-- prepare Railway/Render deployment config
+## Ship checklist
+- [x] UI overhaul
+- [x] All requested tool flows present
+- [x] Docker / Railway / Vercel scaffolding
+- [x] Desktop packaging scaffolding
+- [x] Install scripts
+- [x] README + deployment guide + screenshots folder
+- [x] Tests for core backend functions
 
-### Next
-- stronger Arabic UI polish
-- drag-and-drop page reordering
-- better PDF compression
-- more templates
-- release packaging for desktop download
-- hosted public instance
-- ads layout
-
----
-
-## Suggested final repo name
-- `arabic-pdf-suite`
-
-Short, clear, useful.
+## Recommended next step
+If you want this to compete with ILovePDF visually, the next real upgrade is moving the frontend to Next.js while keeping Python conversion services behind an API. The current Streamlit build is far cleaner than before, but Streamlit still has a ceiling. That’s the honest answer.

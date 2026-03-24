@@ -1,0 +1,17 @@
+name: arabic-pdf-suite
+base: core22
+version: '1.0.0'
+summary: Arabic-first PDF toolkit
+description: |
+  Merge, split, convert, OCR, watermark, and analyze PDFs with Arabic support.
+grade: stable
+confinement: strict
+apps:
+  arabic-pdf-suite:
+    command: bin/python3 -m streamlit run $SNAP/app.py --server.port 3000 --server.address 0.0.0.0
+parts:
+  app:
+    plugin: python
+    source: .
+    python-packages:
+      - -r requirements.txt
